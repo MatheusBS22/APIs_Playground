@@ -24,15 +24,15 @@ public class GroupController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Group> update(@PathVariable Long id, @RequestBody UpdateGroupNameRequest request) {
-        return ResponseEntity.ok(groupService.update(id, request.name()));
+        return ResponseEntity.ok(groupService.update(id, request.name(), request.requesterId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        groupService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam Long requesterId) {
+        groupService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }
 
 record CreateGroupRequest(String name) {}
-record UpdateGroupNameRequest(String name) {}
+record UpdateGroupNameRequest(String name, Long requesterId) {}

@@ -16,7 +16,7 @@ public class CategoryController {
 
     @PostMapping
     public ResponseEntity<Category> create(@RequestBody CreateCategoryRequest request) {
-        Category category = categoryService.create(request.name(), request.type(), request.groupId());
+        Category category = categoryService.create(request.name(), request.type(), request.groupId(), request.requesterId());
         return ResponseEntity.ok(category);
     }
 
@@ -32,15 +32,15 @@ public class CategoryController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Category> update(@PathVariable Long id, @RequestBody UpdateCategoryNameRequest request) {
-        return ResponseEntity.ok(categoryService.update(id, request.name()));
+        return ResponseEntity.ok(categoryService.update(id, request.name(), request.requesterId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        categoryService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam Long requesterId) {
+        categoryService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }
 
-record CreateCategoryRequest(String name, FlowType type, Long groupId) {}
-record UpdateCategoryNameRequest(String name) {}
+record CreateCategoryRequest(String name, FlowType type, Long groupId, Long requesterId) {}
+record UpdateCategoryNameRequest(String name, Long requesterId) {}

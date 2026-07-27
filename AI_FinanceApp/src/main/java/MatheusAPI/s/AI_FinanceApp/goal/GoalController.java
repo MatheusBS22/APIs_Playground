@@ -18,11 +18,8 @@ public class GoalController {
     @PostMapping
     public ResponseEntity<Goal> create(@RequestBody CreateGoalRequest request) {
         Goal goal = goalService.create(
-                request.name(),
-                request.targetAmount(),
-                request.deadline(),
-                request.groupId(),
-                request.ownerId());
+                request.name(), request.targetAmount(), request.deadline(),
+                request.groupId(), request.ownerId(), request.requesterId());
         return ResponseEntity.ok(goal);
     }
 
@@ -37,13 +34,13 @@ public class GoalController {
     }
 
     @GetMapping("/owner/{ownerId}")
-    public ResponseEntity<List<Goal>> listByOwner(@PathVariable Long ownerId) {
-        return ResponseEntity.ok(goalService.listByOwner(ownerId));
+    public ResponseEntity<List<Goal>> listByOwner(@PathVariable Long ownerId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(goalService.listByOwner(ownerId, requesterId));
     }
 
     @PostMapping("/{id}/contributions")
     public ResponseEntity<Goal> addContribution(@PathVariable Long id, @RequestBody ContributionRequest request) {
-        return ResponseEntity.ok(goalService.addContribution(id, request.amount()));
+        return ResponseEntity.ok(goalService.addContribution(id, request.amount(), request.requesterId()));
     }
 
     @GetMapping("/{id}/required-monthly")
@@ -52,17 +49,16 @@ public class GoalController {
     }
 
     @GetMapping("/{id}/simulate")
-    public ResponseEntity<GoalProjection> simulateMonthlyContribution(@PathVariable Long id,
-                                                                       @RequestParam BigDecimal monthlyAmount) {
+    public ResponseEntity<GoalProjection> simulateMonthlyContribution(@PathVariable Long id, @RequestParam BigDecimal monthlyAmount) {
         return ResponseEntity.ok(goalService.simulateMonthlyContribution(id, monthlyAmount));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        goalService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam Long requesterId) {
+        goalService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }
 
-record CreateGoalRequest(String name, BigDecimal targetAmount, LocalDate deadline, Long groupId, Long ownerId) {}
-record ContributionRequest(BigDecimal amount) {}
+record CreateGoalRequest(String name, BigDecimal targetAmount, LocalDate deadline, Long groupId, Long ownerId, Long requesterId) {}
+record ContributionRequest(BigDecimal amount, Long requesterId) {}

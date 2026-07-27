@@ -19,13 +19,8 @@ public class BalanceFlowController {
     @PostMapping
     public ResponseEntity<BalanceFlow> create(@RequestBody CreateBalanceFlowRequest request) {
         BalanceFlow balanceFlow = balanceFlowService.create(
-                request.type(),
-                request.amount(),
-                request.title(),
-                request.notes(),
-                request.accountId(),
-                request.categoryId(),
-                request.creatorId());
+                request.type(), request.amount(), request.title(), request.notes(),
+                request.accountId(), request.categoryId(), request.creatorId());
         return ResponseEntity.ok(balanceFlow);
     }
 
@@ -35,54 +30,55 @@ public class BalanceFlowController {
     }
 
     @GetMapping("/account/{accountId}")
-    public ResponseEntity<List<BalanceFlow>> listByAccount(@PathVariable Long accountId) {
-        return ResponseEntity.ok(balanceFlowService.listByAccount(accountId));
+    public ResponseEntity<List<BalanceFlow>> listByAccount(@PathVariable Long accountId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.listByAccount(accountId, requesterId));
     }
 
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<BalanceFlow>> listByGroup(@PathVariable Long groupId) {
-        return ResponseEntity.ok(balanceFlowService.listByGroup(groupId));
+    public ResponseEntity<List<BalanceFlow>> listByGroup(@PathVariable Long groupId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.listByGroup(groupId, requesterId));
     }
 
     @GetMapping("/account/{accountId}/balance")
-    public ResponseEntity<BigDecimal> getBalanceByAccount(@PathVariable Long accountId) {
-        return ResponseEntity.ok(balanceFlowService.getBalanceByAccount(accountId));
+    public ResponseEntity<BigDecimal> getBalanceByAccount(@PathVariable Long accountId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.getBalanceByAccount(accountId, requesterId));
     }
 
     @GetMapping("/group/{groupId}/balance")
-    public ResponseEntity<BigDecimal> getBalanceByGroup(@PathVariable Long groupId) {
-        return ResponseEntity.ok(balanceFlowService.getBalanceByGroup(groupId));
+    public ResponseEntity<BigDecimal> getBalanceByGroup(@PathVariable Long groupId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.getBalanceByGroup(groupId, requesterId));
     }
 
     @GetMapping("/group/{groupId}/breakdown")
-    public ResponseEntity<Map<Long, BigDecimal>> getCategoryBreakdown(@PathVariable Long groupId) {
-        return ResponseEntity.ok(balanceFlowService.getCategoryBreakdown(groupId));
+    public ResponseEntity<Map<Long, BigDecimal>> getCategoryBreakdown(@PathVariable Long groupId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.getCategoryBreakdown(groupId, requesterId));
     }
 
     @GetMapping("/group/{groupId}/category/{categoryId}/total")
-    public ResponseEntity<BigDecimal> getTotalByCategory(@PathVariable Long groupId, @PathVariable Long categoryId) {
-        return ResponseEntity.ok(balanceFlowService.getTotalByCategory(groupId, categoryId));
+    public ResponseEntity<BigDecimal> getTotalByCategory(@PathVariable Long groupId, @PathVariable Long categoryId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.getTotalByCategory(groupId, categoryId, requesterId));
     }
 
     @GetMapping("/group/{groupId}/period")
     public ResponseEntity<BigDecimal> getTotalByPeriod(@PathVariable Long groupId,
                                                         @RequestParam FlowType type,
                                                         @RequestParam LocalDateTime start,
-                                                        @RequestParam LocalDateTime end) {
-        return ResponseEntity.ok(balanceFlowService.getTotalByPeriod(groupId, type, start, end));
+                                                        @RequestParam LocalDateTime end,
+                                                        @RequestParam Long requesterId) {
+        return ResponseEntity.ok(balanceFlowService.getTotalByPeriod(groupId, type, start, end, requesterId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<BalanceFlow> update(@PathVariable Long id, @RequestBody UpdateBalanceFlowRequest request) {
-        return ResponseEntity.ok(balanceFlowService.update(id, request.newAmount(), request.newTitle(), request.newNotes()));
+        return ResponseEntity.ok(balanceFlowService.update(id, request.newAmount(), request.newTitle(), request.newNotes(), request.requesterId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        balanceFlowService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam Long requesterId) {
+        balanceFlowService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }
 
 record CreateBalanceFlowRequest(FlowType type, BigDecimal amount, String title, String notes, Long accountId, Long categoryId, Long creatorId) {}
-record UpdateBalanceFlowRequest(BigDecimal newAmount, String newTitle, String newNotes) {}
+record UpdateBalanceFlowRequest(BigDecimal newAmount, String newTitle, String newNotes, Long requesterId) {}

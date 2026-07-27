@@ -13,9 +13,7 @@ public class UserAccountController {
 
     @PostMapping
     public ResponseEntity<UserAccount> create(@RequestBody CreateUserAccountRequest request) {
-        UserAccount userAccount = userAccountService.create(request.accType(),
-                request.username(),
-                request.surname());
+        UserAccount userAccount = userAccountService.create(request.accType(), request.username(), request.surname());
         return ResponseEntity.ok(userAccount);
     }
 
@@ -26,15 +24,15 @@ public class UserAccountController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserAccount> update(@PathVariable Long id, @RequestBody UpdateUserAccountNameRequest request) {
-        return ResponseEntity.ok(userAccountService.updateName(id, request.name()));
+        return ResponseEntity.ok(userAccountService.updateName(id, request.name(), request.requesterId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        userAccountService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam Long requesterId) {
+        userAccountService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }
 
 record CreateUserAccountRequest(AccType accType, String username, String surname) {}
-record UpdateUserAccountNameRequest(String name) {}
+record UpdateUserAccountNameRequest(String name, Long requesterId) {}

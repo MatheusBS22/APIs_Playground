@@ -1,5 +1,6 @@
 package MatheusAPI.s.AI_FinanceApp.user;
 
+import MatheusAPI.s.AI_FinanceApp.common.AccessDeniedException;
 import MatheusAPI.s.AI_FinanceApp.group.Group;
 import MatheusAPI.s.AI_FinanceApp.group.GroupRepository;
 import MatheusAPI.s.AI_FinanceApp.group.GroupService;
@@ -17,13 +18,12 @@ public class UserAccountService {
     private final GroupRepository groupRepository;
     private final GroupService groupService;
 
+    // Cadastro em si não exige requesterId -- é o próprio ato de "nascer" no sistema.
     @Transactional
     public UserAccount create(AccType accType, String name, String surname) {
-
         Group group = groupService.create(name + " " + "Group");
         UserAccount userAccount = new UserAccount();
         userAccount.setGroup(group);
-
         userAccount.setUsername(name);
         userAccount.setSurname(surname);
         userAccount.setAccType(accType);
@@ -41,24 +41,35 @@ public class UserAccountService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + id));
     }
 
+    // Cada um só edita o próprio perfil -- nem Family Manager mexe no perfil de outro membro.
     @Transactional
-    public UserAccount updateName(Long id, String newName) {
+    public UserAccount updateName(Long id, String newName, Long requesterId) {
+        requireSelfOrDeveloper(id, requesterId, "editar esse usuário");
         UserAccount userAccount = getById(id);
         userAccount.setUsername(newName);
         return userAccountRepository.save(userAccount);
     }
 
     @Transactional
-    public UserAccount updateSurname(Long id, String newSurname) {
+    public UserAccount updateSurname(Long id, String newSurname, Long requesterId) {
+        requireSelfOrDeveloper(id, requesterId, "editar esse usuário");
         UserAccount userAccount = getById(id);
         userAccount.setSurname(newSurname);
         return userAccountRepository.save(userAccount);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, Long requesterId) {
+        requireSelfOrDeveloper(id, requesterId, "apagar esse usuário");
         UserAccount userAccount = getById(id);
         userAccountRepository.delete(userAccount);
     }
 
+    private void requireSelfOrDeveloper(Long targetId, Long requesterId, String action) {
+        UserAccount requester = getById(requesterId);
+        if (requester.getAccType() == AccType.DEVELOPER) return;
+        if (!targetId.equals(requesterId)) {
+            throw new AccessDeniedException("Você não tem permissão para " + action);
+        }
+    }
 }

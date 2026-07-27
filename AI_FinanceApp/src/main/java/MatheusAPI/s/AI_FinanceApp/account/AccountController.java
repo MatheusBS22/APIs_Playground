@@ -25,21 +25,21 @@ public class AccountController {
     }
 
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<Account>> listByGroup(@PathVariable Long groupId) {
-        return ResponseEntity.ok(accountService.listByGroup(groupId));
+    public ResponseEntity<List<Account>> listByGroup(@PathVariable Long groupId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(accountService.listByGroup(groupId, requesterId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Account> update(@PathVariable Long id, @RequestBody UpdateAccountNameRequest request) {
-        return ResponseEntity.ok(accountService.update(id, request.name()));
+        return ResponseEntity.ok(accountService.update(id, request.name(), request.requesterId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        accountService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam Long requesterId) {
+        accountService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
 }
 
 record CreateAccountRequest(String name, Long creatorId, Long groupId) {}
-record UpdateAccountNameRequest(String name) {}
+record UpdateAccountNameRequest(String name, Long requesterId) {}
