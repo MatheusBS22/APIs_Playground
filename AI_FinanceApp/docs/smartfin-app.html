@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>SmartFin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F7FB;
+    --surface:#FFFFFF;
+    --ink:#16213E;
+    --ink-soft:#6B7280;
+    --ink-faint:#A2A8BE;
+    --line:#E7E9F3;
+    --primary:#3A6FF7;
+    --primary-dark:#2B54C4;
+    --teal:#17B3A3;
+    --green:#1FBF83;
+    --coral:#FF8A65;
+    --coral-dark:#E96B45;
+    --amber:#FFB648;
+    --card-grad: linear-gradient(135deg, #3A6FF7 0%, #2E8FE0 55%, #17B3A3 100%);
+    --shadow-sm: 0 1px 2px rgba(22,33,62,0.06);
+    --shadow-md: 0 8px 24px rgba(22,33,62,0.08);
+    --shadow-card: 0 14px 30px rgba(58,111,247,0.22);
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.num,.brand{font-family:'Manrope',sans-serif;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  .phone{
+    max-width:430px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+    overflow-x:hidden;
+    padding-bottom:90px;
+  }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px 10px;
+    background:var(--bg);
+  }
+  .hamburger{
+    width:40px; height:40px; border-radius:12px;
+    background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:var(--shadow-sm);
+    cursor:pointer;
+  }
+  .hamburger span{display:block; width:16px; height:2px; background:var(--ink); border-radius:2px; position:relative;}
+  .hamburger span::before,.hamburger span::after{content:'';position:absolute;left:0;width:16px;height:2px;background:var(--ink);border-radius:2px;}
+  .hamburger span::before{top:-5px;} .hamburger span::after{top:5px;}
+  .brand{font-weight:800; font-size:17px; letter-spacing:-0.2px;}
+  .brand span{color:var(--primary);}
+  .topbar-right{width:40px;height:40px;border-radius:50%;background:var(--card-grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;}
+
+  /* ---------- SIDEBAR DRAWER ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(22,33,62,0.45);
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+    z-index:30;
+  }
+  .overlay.open{opacity:1; pointer-events:auto;}
+
+  .drawer{
+    position:fixed; top:0; left:0; height:100%; width:78%; max-width:300px;
+    background:var(--surface);
+    transform:translateX(-105%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    z-index:31;
+    display:flex; flex-direction:column;
+    box-shadow:0 0 40px rgba(0,0,0,0.15);
+  }
+  .drawer.open{transform:translateX(0);}
+
+  .drawer-head{
+    background:var(--card-grad);
+    padding:26px 20px 20px;
+    color:#fff;
+    position:relative;
+  }
+  .drawer-avatar{
+    width:52px;height:52px;border-radius:50%;
+    background:rgba(255,255,255,0.25);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700; font-size:18px;
+    margin-bottom:10px;
+    border:2px solid rgba(255,255,255,0.5);
+  }
+  .drawer-name{font-weight:700; font-size:16px;}
+  .drawer-role{font-size:12px; opacity:0.85; margin-top:2px;}
+  .drawer-close{
+    position:absolute; top:18px; right:16px;
+    width:30px;height:30px;border-radius:50%;
+    background:rgba(255,255,255,0.2);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer; color:#fff; font-size:14px;
+  }
+
+  .drawer-nav{padding:10px 10px; flex:1; overflow-y:auto;}
+  .drawer-item{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 12px; border-radius:12px;
+    color:var(--ink-soft); font-size:14.5px; font-weight:600;
+    cursor:pointer; margin-bottom:2px;
+    transition:background .15s ease, color .15s ease;
+  }
+  .drawer-item .ic{width:22px; text-align:center; font-size:16px;}
+  .drawer-item:hover{background:#F1F4FF;}
+  .drawer-item.active{background:#EEF2FF; color:var(--primary);}
+  .badge-dot{margin-left:auto; width:8px;height:8px;border-radius:50%;background:var(--coral);}
+  .drawer-foot{padding:14px 20px 22px; font-size:11px; color:var(--ink-faint); border-top:1px solid var(--line);}
+
+  /* ---------- SCREENS ---------- */
+  .screen{display:none; padding:2px 18px 20px;}
+  .screen.active{display:block;}
+
+  /* Family card (signature element) */
+  .family-card{
+    background:var(--card-grad);
+    border-radius:var(--radius-lg);
+    padding:20px 20px 22px;
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow-card);
+    margin-bottom:18px;
+  }
+  .family-card::after{
+    content:'';
+    position:absolute; right:-40px; top:-40px;
+    width:160px; height:160px; border-radius:50%;
+    background:rgba(255,255,255,0.08);
+  }
+  .family-card::before{
+    content:'';
+    position:absolute; right:30px; bottom:-60px;
+    width:120px; height:120px; border-radius:50%;
+    background:rgba(255,255,255,0.06);
+  }
+  .fc-top{display:flex; align-items:center; gap:12px; margin-bottom:18px; position:relative; z-index:1;}
+  .fc-avatar{
+    width:46px;height:46px;border-radius:50%;
+    background:rgba(255,255,255,0.22);
+    border:2px solid rgba(255,255,255,0.55);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700;
+  }
+  .fc-id .name{font-weight:700; font-size:15px;}
+  .fc-id .type{font-size:11.5px; opacity:0.85; display:flex; gap:6px; align-items:center;}
+  .fc-id .type .lvl{
+    background:rgba(255,255,255,0.22); padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:700;
+  }
+  .fc-balance-label{font-size:12px; opacity:0.85; position:relative; z-index:1;}
+  .fc-balance{font-size:32px; font-weight:800; margin-top:2px; position:relative; z-index:1;}
+
+  .section-title{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:20px 2px 10px;
+  }
+  .section-title h2{font-size:16px; font-weight:700;}
+  .section-title .link{font-size:12.5px; color:var(--primary); font-weight:600; cursor:pointer;}
+
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius-md);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-sm);
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+
+  /* transaction row */
+  .tx-row{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .tx-row:last-child{border-bottom:none;}
+  .tx-icon{
+    width:38px;height:38px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px; flex-shrink:0;
+  }
+  .tx-icon.income{background:#E4F9EF; color:var(--green);}
+  .tx-icon.expense{background:#FFEEE7; color:var(--coral-dark);}
+  .tx-info{flex:1; min-width:0;}
+  .tx-title{font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .tx-sub{font-size:11.5px; color:var(--ink-faint); margin-top:1px;}
+  .tx-amount{font-weight:700; font-size:14px; flex-shrink:0;}
+  .tx-amount.income{color:var(--green);}
+  .tx-amount.expense{color:var(--coral-dark);}
+
+  .btn-ghost-block{
+    width:100%; text-align:center; padding:11px;
+    border-radius:12px; border:1px dashed var(--line);
+    color:var(--ink-soft); font-size:13px; font-weight:600;
+    background:transparent; cursor:pointer; margin-top:2px;
+  }
+  .btn-ghost-block:hover{border-color:var(--primary); color:var(--primary);}
+
+  /* fab */
+  .fab{
+    position:fixed; right:20px; bottom:22px;
+    width:56px; height:56px; border-radius:50%;
+    background:var(--card-grad);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 24px rgba(58,111,247,0.4);
+    color:#fff; font-size:22px; cursor:pointer;
+    z-index:15; max-width:430px;
+  }
+  .fab .pulse{
+    position:absolute; inset:-4px; border-radius:50%;
+    border:2px solid rgba(58,111,247,0.35);
+    animation:pulse 2.2s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(0.9); opacity:0.8;} 100%{transform:scale(1.35); opacity:0;}}
+
+  /* fab quick-ask panel */
+  .fab-panel{
+    position:fixed; right:20px; bottom:88px;
+    width:min(320px, calc(100vw - 40px));
+    background:var(--surface); border-radius:16px;
+    box-shadow:0 14px 32px rgba(20,20,40,0.22);
+    padding:14px; z-index:16; display:none;
+  }
+  .fab-panel.open{display:block;}
+  .fab-panel .form-inline{margin-bottom:0;}
+
+  /* charts screen */
+  .chart-card{padding:16px 16px 10px;}
+  .chart-card h3{font-size:14px; font-weight:700; margin-bottom:2px;}
+  .chart-card .sub{font-size:11.5px; color:var(--ink-faint); margin-bottom:10px;}
+  .chart-legend{display:flex; gap:14px; font-size:11px; color:var(--ink-soft); margin-top:8px;}
+  .chart-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:8px;height:8px;border-radius:50%; display:inline-block;}
+
+  .metric-row{display:flex; gap:10px; margin-bottom:14px;}
+  .metric-mini{
+    flex:1; background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius-sm); padding:12px; box-shadow:var(--shadow-sm);
+  }
+  .metric-mini .lbl{font-size:11px; color:var(--ink-faint);}
+  .metric-mini .val{font-size:17px; font-weight:800; margin-top:2px;}
+  .metric-mini .val.pos{color:var(--green);}
+  .metric-mini .val.neg{color:var(--coral-dark);}
+
+  /* goals */
+  .goal-card{display:flex; gap:14px; align-items:flex-start; padding:16px;}
+  .goal-ring{position:relative; width:56px; height:56px; flex-shrink:0;}
+  .goal-ring .pct{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800;
+  }
+  .goal-body{flex:1; min-width:0;}
+  .goal-name{font-weight:700; font-size:14.5px;}
+  .goal-tag{
+    display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px;
+    margin-top:3px;
+  }
+  .goal-tag.group{background:#E9F1FF; color:var(--primary);}
+  .goal-tag.solo{background:#FFF1E6; color:var(--coral-dark);}
+  .goal-figures{font-size:12px; color:var(--ink-soft); margin-top:8px;}
+  .goal-figures b{color:var(--ink);}
+  .goal-deadline{font-size:11px; color:var(--ink-faint); margin-top:2px;}
+
+  /* group members */
+  .member-row{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+  .member-row:last-child{border-bottom:none;}
+  .member-avatar{
+    width:42px;height:42px;border-radius:50%;
+    background:#EEF2FF; color:var(--primary);
+    display:flex;align-items:center;justify-content:center; font-weight:700; font-size:14px;
+  }
+  .member-info{flex:1;}
+  .member-name{font-weight:700; font-size:14px;}
+  .member-role{font-size:11.5px; color:var(--ink-faint);}
+  .role-pill{font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;}
+  .role-pill.manager{background:#FFF1E6; color:var(--coral-dark);}
+  .role-pill.member{background:#EAF9F1; color:var(--green);}
+
+  /* notifications */
+  .notif-row{display:flex; gap:12px; padding:13px 0; border-bottom:1px solid var(--line);}
+  .notif-row:last-child{border-bottom:none;}
+  .notif-icon{width:36px;height:36px;border-radius:10px; flex-shrink:0; display:flex;align-items:center;justify-content:center; font-size:15px;}
+  .notif-icon.goal{background:#EAF9F1; color:var(--green);}
+  .notif-icon.group{background:#E9F1FF; color:var(--primary);}
+  .notif-icon.alert{background:#FFEEE7; color:var(--coral-dark);}
+  .notif-body{flex:1;}
+  .notif-text{font-size:13px; line-height:1.4;}
+  .notif-text b{font-weight:700;}
+  .notif-time{font-size:11px; color:var(--ink-faint); margin-top:3px;}
+  .notif-unread-dot{width:8px;height:8px;border-radius:50%; background:var(--primary); flex-shrink:0; margin-top:5px;}
+
+  .placeholder-tag{
+    display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:0.4px;
+    text-transform:uppercase; color:var(--ink-faint); background:#F1F2F8;
+    padding:2px 7px; border-radius:6px; margin-left:6px;
+  }
+
+  /* role switcher (dentro da drawer) */
+  .role-switch{display:flex; gap:6px; margin-top:14px; position:relative; z-index:1;}
+  .role-pill-btn{
+    flex:1; text-align:center; font-size:10.5px; font-weight:700;
+    padding:7px 4px; border-radius:10px; cursor:pointer;
+    background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.75);
+    border:1px solid rgba(255,255,255,0.25);
+    transition:background .15s ease, color .15s ease;
+  }
+  .role-pill-btn.active{background:#fff; color:var(--primary-dark);}
+
+  .drawer-item.fm-only,.drawer-item.dev-only{display:none;}
+  body.role-family_manager .drawer-item.fm-only,
+  body.role-developer .drawer-item.fm-only,
+  body.role-developer .drawer-item.dev-only{display:flex;}
+
+  .fm-only-inline,.dev-only-inline{display:none;}
+  body.role-family_manager .fm-only-inline,
+  body.role-developer .fm-only-inline{display:block;}
+  body.role-family_manager .icon-actions.fm-only-inline,
+  body.role-developer .icon-actions.fm-only-inline{display:flex;}
+  body.role-family_manager .btn-ghost-block.fm-only-inline,
+  body.role-developer .btn-ghost-block.fm-only-inline{display:block;}
+  body.role-family_manager .form-inline.fm-only-inline,
+  body.role-developer .form-inline.fm-only-inline{display:flex;}
+  body.role-developer .icon-actions.dev-only-inline{display:flex;}
+
+  /* nota de pendência (funcionalidade sem endpoint ainda) */
+  .todo-note{
+    font-size:11.5px; color:var(--coral-dark);
+    background:#FFF4EF; border:1px dashed #FFD3BE;
+    border-radius:10px; padding:9px 11px; margin-bottom:12px; line-height:1.4;
+  }
+
+  /* botões de ícone (editar/apagar em cards) */
+  .icon-actions{display:flex; gap:6px; margin-top:10px;}
+  .icon-btn{
+    width:28px; height:28px; border-radius:9px; border:1px solid var(--line);
+    background:var(--surface); display:flex; align-items:center; justify-content:center;
+    font-size:12px; cursor:pointer; color:var(--ink-soft);
+  }
+  .icon-btn:hover{border-color:var(--primary); color:var(--primary);}
+  .icon-btn.danger:hover{border-color:var(--coral-dark); color:var(--coral-dark);}
+
+  /* form inline simples (categorias, membros, etc.) */
+  .form-inline{display:flex; gap:8px; margin-bottom:12px;}
+  .form-inline input, .form-inline select{
+    flex:1; border:1px solid var(--line); border-radius:10px;
+    padding:9px 10px; font-size:13px; font-family:inherit; background:var(--surface); color:var(--ink);
+  }
+  .form-inline button{
+    border:none; border-radius:10px; padding:0 14px;
+    background:var(--primary); color:#fff; font-weight:700; font-size:13px; cursor:pointer;
+  }
+
+  /* formulário de categorias: layout próprio para não herdar o comportamento
+     dos formulários inline já usados em Carteiras, IA, membros etc. */
+  .category-form{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:8px;
+    margin-bottom:0;
+    min-width:0;
+  }
+  .category-form input{
+    grid-column:1 / -1;
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+  }
+  .category-form select{
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    flex:none;
+  }
+  .category-form button{
+    grid-column:1 / -1;
+    width:100%;
+    box-sizing:border-box;
+    min-height:38px;
+    white-space:nowrap;
+    border:1px dashed var(--line);
+    border-radius:10px;
+    padding:11px 14px;
+    background:transparent;
+    color:var(--ink-soft);
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .category-form button:hover{border-color:var(--primary); color:var(--primary); background:transparent;}
+
+  .empty-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+  .empty-actions .btn-ghost-block{flex:1; min-width:150px;}
+
+  .cat-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-dot{width:10px;height:10px;border-radius:50%; flex-shrink:0;}
+  .cat-dot.expense{background:var(--coral);}
+  .cat-dot.income{background:var(--green);}
+  .cat-name{flex:1; font-size:13.5px; font-weight:600;}
+  .cat-type{font-size:11px; color:var(--ink-faint);}
+
+  .dev-badge{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:10.5px; font-weight:700; color:#7C4DFF;
+    background:#F1ECFF; border:1px solid #DCCCFF;
+    padding:4px 10px; border-radius:20px; margin-bottom:12px;
+  }
+
+  /* tela de entrada (criar/carregar usuário) */
+  #login-overlay{
+    position:fixed; inset:0; z-index:50;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:360px;
+    background:var(--surface); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-md); border:1px solid var(--line);
+    padding:26px 22px;
+  }
+  .login-logo{
+    width:52px; height:52px; border-radius:16px;
+    background:var(--card-grad); margin:0 auto 14px;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:800; font-size:20px;
+  }
+  .login-title{text-align:center; font-size:18px; font-weight:800; margin-bottom:4px;}
+  .login-sub{text-align:center; font-size:12.5px; color:var(--ink-faint); margin-bottom:18px;}
+  .login-tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--bg); border-radius:12px; padding:4px;}
+  .login-tab{flex:1; text-align:center; padding:8px; border-radius:9px; font-size:12.5px; font-weight:700; color:var(--ink-faint); cursor:pointer;}
+  .login-tab.active{background:var(--surface); color:var(--primary); box-shadow:var(--shadow-sm);}
+  .login-form{display:none; flex-direction:column; gap:10px;}
+  .login-form.active{display:flex;}
+  .login-form input, .login-form select{
+    border:1px solid var(--line); border-radius:11px; padding:11px 12px;
+    font-size:14px; font-family:inherit; background:var(--bg); color:var(--ink);
+  }
+  .login-btn{
+    border:none; border-radius:11px; padding:12px; margin-top:4px;
+    background:var(--card-grad); color:#fff; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .login-error{font-size:12px; color:var(--coral-dark); margin-top:8px; text-align:center; min-height:14px;}
+  .login-api{margin-top:16px; font-size:11px; color:var(--ink-faint); text-align:center;}
+  .login-api input{
+    margin-top:6px; width:100%; border:1px solid var(--line); border-radius:8px;
+    padding:6px 8px; font-size:11px; text-align:center; background:var(--bg); color:var(--ink-soft);
+  }
+
+  ::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+
+<!-- ===================== ENTRAR (criar ou carregar usuário) ===================== -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">S</div>
+    <div class="login-title">SmartFin</div>
+    <div class="login-sub">Ainda sem login de verdade — por enquanto, crie ou carregue um usuário pelo ID.</div>
+
+    <div class="login-tabs">
+      <div class="login-tab active" data-tab="criar" onclick="switchLoginTab('criar')">Criar usuário</div>
+      <div class="login-tab" data-tab="carregar" onclick="switchLoginTab('carregar')">Já tenho ID</div>
+    </div>
+
+    <form class="login-form active" id="login-form-criar" onsubmit="event.preventDefault(); handleCreateUser();">
+      <input type="text" id="login-username" placeholder="Nome" required>
+      <input type="text" id="login-surname" placeholder="Sobrenome" required>
+      <select id="login-acctype">
+        <option value="MEMBER">Usuário padrão</option>
+        <option value="FAMILY_MANAGER">Family Manager</option>
+        <option value="DEVELOPER">Developer</option>
+      </select>
+      <button type="submit" class="login-btn">Criar e entrar</button>
+    </form>
+
+    <form class="login-form" id="login-form-carregar" onsubmit="event.preventDefault(); handleLoadUser();">
+      <input type="number" id="login-userid" placeholder="ID do usuário" required>
+      <button type="submit" class="login-btn">Entrar</button>
+    </form>
+
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="phone">
+
+  <div class="topbar">
+    <div class="hamburger" onclick="toggleDrawer(true)"><span></span></div>
+    <div class="brand">Smart<span>Fin</span></div>
+    <div class="topbar-right" id="topbar-avatar">A</div>
+  </div>
+
+  <!-- DRAWER -->
+  <div class="overlay" id="overlay" onclick="toggleDrawer(false)"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div class="drawer-close" onclick="toggleDrawer(false)">✕</div>
+      <div class="drawer-avatar" id="drawer-avatar">A</div>
+      <div class="drawer-name" id="drawer-name">Ana Silva</div>
+      <div class="drawer-role" id="drawer-role">Membro · Família Silva</div>
+    </div>
+    <div class="drawer-nav" id="drawer-nav">
+      <div class="drawer-item active" data-screen="inicio" onclick="goTo('inicio')"><span class="ic">🏠</span> Início</div>
+      <div class="drawer-item" data-screen="estatisticas" onclick="goTo('estatisticas')"><span class="ic">📊</span> Estatísticas</div>
+      <div class="drawer-item" data-screen="metas" onclick="goTo('metas')"><span class="ic">🎯</span> Metas</div>
+      <div class="drawer-item" data-screen="carteiras" onclick="goTo('carteiras')"><span class="ic">👛</span> Carteiras</div>
+      <div class="drawer-item" data-screen="categorias" onclick="goTo('categorias')"><span class="ic">🏷️</span> Categorias</div>
+      <div class="drawer-item" data-screen="grupo" onclick="goTo('grupo')"><span class="ic">👨‍👩‍👧</span> Grupo Familiar</div>
+      <div class="drawer-item" data-screen="avisos" onclick="goTo('avisos')"><span class="ic">🔔</span> Avisos <span class="badge-dot"></span></div>
+      <div class="drawer-item" data-screen="ia" onclick="goTo('ia')"><span class="ic">🤖</span> Assistente IA</div>
+      <div class="drawer-item dev-only" data-screen="debug" onclick="goTo('debug')"><span class="ic">🛠️</span> Painel Developer</div>
+    </div>
+    <div class="drawer-foot">SmartFin · o perfil exibido vem direto do cadastro no backend.</div>
+  </div>
+
+  <!-- ===================== INÍCIO ===================== -->
+  <section class="screen active" id="screen-inicio">
+    <div class="family-card">
+      <div class="fc-top">
+        <div class="fc-avatar" id="fc-avatar">A</div>
+        <div class="fc-id">
+          <div class="name" id="fc-name">Olá, Ana</div>
+          <div class="type">Membro <span class="lvl">Level 3 <span style="opacity:.8;">(em breve)</span></span></div>
+        </div>
+      </div>
+      <div class="fc-balance-label">Saldo atual</div>
+      <div class="fc-balance num" id="fc-balance">R$ 0,00</div>
+    </div>
+
+    <div class="card" id="quick-flow-card" style="display:none;">
+      <div class="form-inline" style="flex-wrap:wrap;">
+        <select id="quick-account" style="flex:1 1 100%;"></select>
+        <select id="quick-category" style="flex:1 1 100%;"></select>
+        <select id="quick-type" style="flex:0 0 90px;">
+          <option value="EXPENSE">Saída</option>
+          <option value="INCOME">Entrada</option>
+        </select>
+        <input type="text" id="quick-title" placeholder="Título" style="flex:1 1 auto;">
+        <input type="number" id="quick-amount" placeholder="Valor" step="0.01" style="flex:0 0 100px;">
+        <button class="btn-ghost-block" onclick="handleQuickFlow()">Lançar</button>
+      </div>
+      <div class="login-error" id="quick-flow-error"></div>
+    </div>
+    <div class="card" id="quick-flow-empty">
+      <div class="empty-note">Crie uma carteira na aba <span class="link" onclick="goTo('carteiras')">Carteiras</span> pra poder lançar.</div>
+    </div>
+
+    <div class="section-title">
+      <h2>Últimos lançamentos</h2>
+      <span class="link" onclick="goTo('carteiras')">ver carteiras</span>
+    </div>
+    <div class="card">
+      <div id="tx-list">
+        <div class="empty-note">Carregando...</div>
+      </div>
+      <button class="btn-ghost-block" onclick="loadInicio()">Atualizar</button>
+    </div>
+  </section>
+
+  <!-- ===================== ESTATÍSTICAS ===================== -->
+  <section class="screen" id="screen-estatisticas">
+    <div class="section-title" style="margin-top:14px;"><h2>Estatísticas</h2></div>
+
+    <div class="metric-row">
+      <div class="metric-mini"><div class="lbl">Entradas (mês)</div><div class="val pos num">R$ 3.200</div></div>
+      <div class="metric-mini"><div class="lbl">Saídas (mês)</div><div class="val neg num">R$ 1.140</div></div>
+    </div>
+
+    <div class="card chart-card">
+      <h3>Balanço</h3>
+      <div class="sub">Saldo acumulado nos últimos 6 meses</div>
+      <svg viewBox="0 0 320 120" width="100%" height="120">
+        <defs>
+          <linearGradient id="lineFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3A6FF7" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#3A6FF7" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,90 C20,95 30,60 50,58 C70,56 80,95 100,98 C120,101 135,40 155,38 C175,36 185,80 205,82 C225,84 240,30 260,26 C280,22 300,50 320,45 L320,120 L0,120 Z" fill="url(#lineFill)"/>
+        <path d="M0,90 C20,95 30,60 50,58 C70,56 80,95 100,98 C120,101 135,40 155,38 C175,36 185,80 205,82 C225,84 240,30 260,26 C280,22 300,50 320,45" fill="none" stroke="#3A6FF7" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="320" cy="45" r="4.5" fill="#3A6FF7"/>
+      </svg>
+      <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--ink-faint); padding:0 2px;">
+        <span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span><span>Jul</span>
+      </div>
+    </div>
+
+    <div class="card chart-card">
+      <h3>Investimento em metas</h3>
+      <div class="sub">Quanto já foi aportado em cada meta</div>
+      <svg viewBox="0 0 320 130" width="100%" height="130">
+        <rect x="20"  y="35" width="34" height="80" rx="8" fill="#3A6FF7"/>
+        <rect x="86"  y="55" width="34" height="60" rx="8" fill="#17B3A3"/>
+        <rect x="152" y="20" width="34" height="95" rx="8" fill="#3A6FF7"/>
+        <rect x="218" y="80" width="34" height="35" rx="8" fill="#FFB648"/>
+        <text x="37"  y="128" font-size="10" fill="#6B7280" text-anchor="middle">Viagem</text>
+        <text x="103" y="128" font-size="10" fill="#6B7280" text-anchor="middle">Reforma</text>
+        <text x="169" y="128" font-size="10" fill="#6B7280" text-anchor="middle">PS5</text>
+        <text x="235" y="128" font-size="10" fill="#6B7280" text-anchor="middle">Emerg.</text>
+      </svg>
+      <div class="chart-legend">
+        <span><i class="dot" style="background:#3A6FF7"></i>Meta de grupo</span>
+        <span><i class="dot" style="background:#17B3A3"></i>Meta individual</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== METAS ===================== -->
+  <section class="screen" id="screen-metas">
+    <div class="section-title" style="margin-top:14px;"><h2>Metas do grupo</h2></div>
+
+    <div class="card goal-card">
+      <div class="goal-ring">
+        <svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="#E7E9F3" stroke-width="6" fill="none"/><circle cx="28" cy="28" r="24" stroke="#3A6FF7" stroke-width="6" fill="none" stroke-dasharray="150.8" stroke-dashoffset="52" stroke-linecap="round" transform="rotate(-90 28 28)"/></svg>
+        <div class="pct">65%</div>
+      </div>
+      <div class="goal-body">
+        <div class="goal-name">Reforma da cozinha</div>
+        <span class="goal-tag group">Meta de grupo</span>
+        <div class="goal-figures">R$ 3.250 de <b>R$ 5.000</b></div>
+        <div class="goal-deadline">até 30 jun 2027 · você pode aportar</div>
+        <div class="icon-actions fm-only-inline"><div class="icon-btn">✏️</div><div class="icon-btn danger">🗑️</div></div>
+      </div>
+    </div>
+
+    <div class="card goal-card">
+      <div class="goal-ring">
+        <svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="#E7E9F3" stroke-width="6" fill="none"/><circle cx="28" cy="28" r="24" stroke="#17B3A3" stroke-width="6" fill="none" stroke-dasharray="150.8" stroke-dashoffset="105" stroke-linecap="round" transform="rotate(-90 28 28)"/></svg>
+        <div class="pct">30%</div>
+      </div>
+      <div class="goal-body">
+        <div class="goal-name">Fundo de emergência</div>
+        <span class="goal-tag group">Meta de grupo</span>
+        <div class="goal-figures">R$ 900 de <b>R$ 3.000</b></div>
+        <div class="goal-deadline">sem prazo definido · você pode aportar</div>
+        <div class="icon-actions fm-only-inline"><div class="icon-btn">✏️</div><div class="icon-btn danger">🗑️</div></div>
+      </div>
+    </div>
+
+    <button class="btn-ghost-block fm-only-inline">+ Nova meta de grupo</button>
+
+    <div class="section-title"><h2>Minhas metas</h2></div>
+
+    <div class="card goal-card">
+      <div class="goal-ring">
+        <svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="#E7E9F3" stroke-width="6" fill="none"/><circle cx="28" cy="28" r="24" stroke="#FF8A65" stroke-width="6" fill="none" stroke-dasharray="150.8" stroke-dashoffset="120" stroke-linecap="round" transform="rotate(-90 28 28)"/></svg>
+        <div class="pct">20%</div>
+      </div>
+      <div class="goal-body">
+        <div class="goal-name">Viagem de fim de ano</div>
+        <span class="goal-tag solo">Individual</span>
+        <div class="goal-figures">R$ 200 de <b>R$ 1.000</b></div>
+        <div class="goal-deadline">até 31 dez 2026</div>
+      </div>
+    </div>
+
+    <button class="btn-ghost-block">+ Nova meta individual</button>
+  </section>
+
+  <!-- ===================== CARTEIRAS ===================== -->
+  <section class="screen" id="screen-carteiras">
+    <div class="section-title" style="margin-top:14px;"><h2>Minhas carteiras</h2></div>
+
+    <div class="card" id="carteiras-list">
+      <div class="empty-note">Carregando...</div>
+    </div>
+
+    <div class="card">
+      <div class="form-inline">
+        <input type="text" id="carteira-nome" placeholder="Nome da carteira (ex: Nubank)">
+        <button class="btn-ghost-block" onclick="handleCreateCarteira()">+ Nova carteira</button>
+      </div>
+      <div class="login-error" id="carteira-error"></div>
+    </div>
+  </section>
+
+  <!-- ===================== CATEGORIAS ===================== -->
+  <section class="screen" id="screen-categorias">
+    <div class="section-title" style="margin-top:14px;"><h2>Minhas categorias</h2></div>
+    <div class="todo-note">Categorias de grupo ficam disponíveis para todos. Cada usuário também pode criar suas próprias categorias pessoais.</div>
+
+    <div class="card">
+      <div class="form-inline category-form">
+        <input type="text" id="categoria-nome" placeholder="Nome da categoria">
+        <select id="categoria-tipo">
+          <option value="EXPENSE">Despesa</option>
+          <option value="INCOME">Receita</option>
+        </select>
+        <select id="categoria-escopo" onchange="updateCategoryScopeHelp()">
+          <option value="PERSONAL">Pessoal</option>
+          <option value="GROUP">Do grupo</option>
+        </select>
+        <button class="btn-ghost-block" onclick="handleCreateCategoria()">Criar categoria</button>
+      </div>
+      <div class="login-error" id="categoria-error"></div>
+      <div id="categoria-scope-help" style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Só você poderá usar e gerenciar esta categoria.</div>
+    </div>
+
+    <div class="card" id="categorias-list">
+      <div class="empty-note">Carregando...</div>
+    </div>
+  </section>
+
+  <!-- ===================== GRUPO FAMILIAR ===================== -->
+  <section class="screen" id="screen-grupo">
+    <div class="section-title" style="margin-top:14px;"><h2>Família Silva</h2></div>
+
+    <div class="card fm-only-inline" style="display:none;">
+      <div class="form-inline" style="margin-bottom:0;">
+        <input type="text" value="Família Silva" placeholder="Nome do grupo">
+        <button>Salvar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="member-row">
+        <div class="member-avatar">C</div>
+        <div class="member-info"><div class="member-name">Carlos Silva</div><div class="member-role">no grupo desde jan/2025</div></div>
+        <span class="role-pill manager">Family Manager</span>
+      </div>
+      <div class="member-row">
+        <div class="member-avatar">A</div>
+        <div class="member-info"><div class="member-name">Ana Silva (você)</div><div class="member-role">no grupo desde jan/2025</div></div>
+        <span class="role-pill member">Membro</span>
+      </div>
+      <div class="member-row">
+        <div class="member-avatar">P</div>
+        <div class="member-info"><div class="member-name">Pedro Silva</div><div class="member-role">no grupo desde mar/2025</div></div>
+        <span class="role-pill member">Membro</span>
+        <div class="icon-btn danger fm-only-inline" style="display:none;">🗑️</div>
+      </div>
+    </div>
+
+    <div class="fm-only-inline" style="display:none;">
+      <div class="todo-note">🚧 Adicionar/remover membro ainda não tem endpoint no backend — hoje cada pessoa só ganha o próprio grupo ao se cadastrar. Esse formulário é só o layout, pronto pra quando o endpoint existir.</div>
+      <div class="card">
+        <div class="form-inline" style="margin-bottom:0;">
+          <input type="number" placeholder="ID do usuário pra adicionar" disabled>
+          <button disabled style="opacity:.5;">Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title"><h2>Metas em grupo <span class="placeholder-tag">resumo</span></h2></div>
+    <div class="card">
+      <div style="font-size:12.5px; color:var(--ink-soft); line-height:1.5;">
+        2 metas ativas em andamento. Só o Family Manager cria ou edita metas de grupo — qualquer membro pode aportar. Veja os detalhes na aba <b>Metas</b>.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ASSISTENTE IA ===================== -->
+  <section class="screen" id="screen-ia">
+    <div class="section-title" style="margin-top:14px;"><h2>Assistente IA</h2></div>
+
+    <div class="card">
+      <div id="ia-chat-log" style="display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
+        <div class="empty-note">Pergunte algo sobre seu saldo, gastos ou metas.</div>
+      </div>
+      <div class="form-inline">
+        <input type="text" id="ia-question" placeholder="Ex: quanto eu gastei esse mês?" onkeydown="if(event.key==='Enter') handleAskAi();">
+        <button class="btn-ghost-block" id="ia-ask-btn" onclick="handleAskAi()">Perguntar</button>
+      </div>
+      <div class="login-error" id="ia-error"></div>
+    </div>
+  </section>
+
+  <!-- ===================== AVISOS ===================== -->
+  <section class="screen" id="screen-avisos">
+    <div class="section-title" style="margin-top:14px;"><h2>Avisos e notificações</h2></div>
+
+    <div class="card">
+      <div class="notif-row">
+        <div class="notif-icon goal">🎯</div>
+        <div class="notif-body">
+          <div class="notif-text"><b>Reforma da cozinha</b> passou de 60% da meta!</div>
+          <div class="notif-time">há 2 horas</div>
+        </div>
+        <div class="notif-unread-dot"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-icon group">👨‍👩‍👧</div>
+        <div class="notif-body">
+          <div class="notif-text"><b>Carlos</b> aportou R$ 150,00 no Fundo de emergência</div>
+          <div class="notif-time">ontem</div>
+        </div>
+        <div class="notif-unread-dot"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-icon alert">⚠️</div>
+        <div class="notif-body">
+          <div class="notif-text">Seus gastos com <b>Lazer</b> já passaram a média dos últimos 3 meses</div>
+          <div class="notif-time">2 dias atrás</div>
+        </div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-icon group">👨‍👩‍👧</div>
+        <div class="notif-body">
+          <div class="notif-text"><b>Pedro Silva</b> entrou no grupo</div>
+          <div class="notif-time">3 dias atrás</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DEBUG (Developer) ===================== -->
+  <section class="screen" id="screen-debug">
+    <div class="section-title" style="margin-top:14px;"><h2>Painel Developer</h2></div>
+    <div class="dev-badge">🛠️ Acesso irrestrito — enxerga e edita qualquer grupo/usuário</div>
+
+    <div class="card">
+      <div style="font-size:12.5px; color:var(--ink-soft); margin-bottom:10px;">
+        O seletor "Membro / Manager / Dev" no topo do menu já é essa simulação de perfil — troque ali pra ver a interface como cada papel vê.
+      </div>
+      <div class="form-inline" style="margin-bottom:0;">
+        <input type="number" placeholder="Ir direto pro grupo #ID">
+        <button>Carregar</button>
+      </div>
+    </div>
+
+    <div class="section-title"><h2>Notas técnicas</h2></div>
+    <div class="card" style="font-size:12.5px; color:var(--ink-soft); line-height:1.6;">
+      • A API hoje exige <code>requesterId</code> em toda escrita — sem isso, ela devolve 403.<br>
+      • <code>DEVELOPER</code> passa por cima de toda checagem de posse nos <code>Service</code>s.<br>
+      • Sem autenticação ainda: o <code>requesterId</code> é só o que a requisição diz ser.
+    </div>
+  </section>
+
+  <!-- FAB — pergunta rápida pro Assistente IA -->
+  <div class="fab-panel" id="fab-panel">
+    <div class="form-inline" style="flex-wrap:wrap;">
+      <input type="text" id="fab-question" placeholder="Pergunte algo..." style="flex:1 1 100%;" onkeydown="if(event.key==='Enter') handleFabAsk();">
+      <button class="btn-ghost-block" id="fab-ask-btn" onclick="handleFabAsk()">Perguntar</button>
+    </div>
+    <div class="login-error" id="fab-error"></div>
+  </div>
+  <div class="fab" id="fab-btn" onclick="toggleFabPanel()">
+    <div class="pulse"></div>
+    🤖
+  </div>
+</div>
+
+<script>
+  // ---------- estado + comunicação com a API ----------
+  const state = {
+    apiBase: 'https://gabisprojectapi.onrender.com',
+    userId: null,
+    groupId: null,
+    accType: null
+  };
+
+  async function api(path, options) {
+    const res = await fetch(state.apiBase + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
+    if (!res.ok) {
+      let msg = 'Erro ' + res.status;
+      try { const body = await res.json(); if (body && body.message) msg = body.message; } catch (e) {}
+      throw new Error(msg);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  function fmtMoney(v){
+    return Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+
+  // ---------- tela de entrada ----------
+  function switchLoginTab(tab){
+    document.querySelectorAll('.login-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.getElementById('login-form-criar').classList.toggle('active', tab === 'criar');
+    document.getElementById('login-form-carregar').classList.toggle('active', tab === 'carregar');
+    document.getElementById('login-error').textContent = '';
+  }
+
+  function showLoginError(err){
+    document.getElementById('login-error').textContent = err.message || 'Algo deu errado.';
+  }
+
+  async function handleCreateUser(){
+    const username = document.getElementById('login-username').value.trim();
+    const surname = document.getElementById('login-surname').value.trim();
+    const accType = document.getElementById('login-acctype').value;
+    try {
+      const user = await api('/users', {
+        method: 'POST',
+        body: JSON.stringify({ accType, username, surname })
+      });
+      onUserLoaded(user);
+    } catch (e) {
+      showLoginError(e);
+    }
+  }
+
+  async function handleLoadUser(){
+    const id = document.getElementById('login-userid').value.trim();
+    try {
+      const user = await api('/users/' + id);
+      onUserLoaded(user);
+    } catch (e) {
+      showLoginError(e);
+    }
+  }
+
+  function onUserLoaded(user){
+    state.userId = user.id;
+    state.groupId = user.group.id;
+    state.accType = user.accType;
+
+    const initial = (user.username || '?').charAt(0).toUpperCase();
+    document.getElementById('topbar-avatar').textContent = initial;
+    document.getElementById('drawer-avatar').textContent = initial;
+    document.getElementById('drawer-name').textContent = user.username + ' ' + (user.surname || '');
+    document.getElementById('fc-avatar').textContent = initial;
+    document.getElementById('fc-name').textContent = 'Olá, ' + user.username;
+
+    // perfil real reflete direto no seletor -- sem simulação nesse momento
+    setRole(user.accType.toLowerCase());
+    configureCategoryForm();
+
+    document.getElementById('login-overlay').style.display = 'none';
+    loadInicio();
+    loadQuickFlowOptions();
+  }
+
+  // ---------- carteiras (contas) ----------
+  async function loadCarteiras(){
+    const wrap = document.getElementById('carteiras-list');
+    if (!state.userId) return;
+    try {
+      const accounts = await api('/accounts/group/' + state.groupId + '?requesterId=' + state.userId);
+      if (accounts.length === 0) {
+        // Só oferece o atalho quando ainda não há categorias.
+        // Assim a tela Carteiras continua igual ao fluxo original depois
+        // que o usuário já configurou suas categorias.
+        let hasCategories = true;
+        try {
+          const categories = await api('/categories/group/' + state.groupId + '?requesterId=' + state.userId);
+          hasCategories = categories.length > 0;
+        } catch (_) {
+          // Se a consulta falhar, não bloqueia o fluxo de criação da carteira.
+        }
+
+        wrap.innerHTML = '<div class="empty-note">Nenhuma carteira ainda. Crie uma abaixo para começar a lançar seus movimentos.</div>' +
+          (!hasCategories
+            ? '<div class="empty-actions"><button class="btn-ghost-block" onclick="goTo(\'categorias\')">Ver categorias</button></div>'
+            : '');
+        return;
+      }
+      const balances = await Promise.all(
+        accounts.map(a => api('/balance-flows/account/' + a.id + '/balance?requesterId=' + state.userId))
+      );
+      wrap.innerHTML = accounts.map((a, i) => (
+        '<div class="tx-row">' +
+        '<div class="tx-icon income">👛</div>' +
+        '<div class="tx-info"><div class="tx-title">' + a.name + '</div></div>' +
+        '<div class="tx-amount income">' + fmtMoney(balances[i]) + '</div></div>'
+      )).join('');
+    } catch (e) {
+      wrap.innerHTML = '<div class="empty-note">Erro ao carregar: ' + e.message + '</div>';
+    }
+  }
+
+  async function handleCreateCarteira(){
+    const nameInput = document.getElementById('carteira-nome');
+    const errEl = document.getElementById('carteira-error');
+    const name = nameInput.value.trim();
+    if (!name) return;
+    try {
+      await api('/accounts', {
+        method: 'POST',
+        body: JSON.stringify({ name, creatorId: state.userId, groupId: state.groupId })
+      });
+      nameInput.value = '';
+      errEl.textContent = '';
+      loadCarteiras();
+      loadQuickFlowOptions();
+    } catch (e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  // ---------- categorias ----------
+  const CAT_TYPE_LABEL = { EXPENSE: 'Despesa', INCOME: 'Receita' };
+
+  function isGroupManager(){
+    return state.accType === 'FAMILY_MANAGER' || state.accType === 'DEVELOPER';
+  }
+
+  function updateCategoryScopeHelp(){
+    const scope = document.getElementById('categoria-escopo');
+    const help = document.getElementById('categoria-scope-help');
+    if (!scope || !help) return;
+    help.textContent = scope.value === 'GROUP'
+      ? 'Categoria do grupo: todos os membros poderão usar. Apenas Manager/Developer pode gerenciar.'
+      : 'Categoria pessoal: somente você poderá usar e gerenciar.';
+  }
+
+  function configureCategoryForm(){
+    const scope = document.getElementById('categoria-escopo');
+    if (!scope) return;
+    const groupOption = scope.querySelector('option[value="GROUP"]');
+    const allowed = isGroupManager();
+    groupOption.disabled = !allowed;
+    if (!allowed) scope.value = 'PERSONAL';
+    updateCategoryScopeHelp();
+  }
+
+  async function loadCategorias(){
+    const wrap = document.getElementById('categorias-list');
+    if (!state.groupId || !state.userId) return;
+    try {
+      const categories = await api('/categories/group/' + state.groupId + '?requesterId=' + state.userId);
+      if (categories.length === 0) {
+        wrap.innerHTML =
+          '<div class="empty-note">Nenhuma categoria ainda. Crie uma categoria pessoal acima' +
+          (isGroupManager() ? ' ou uma categoria do grupo.' : '.') +
+          '</div>';
+        return;
+      }
+
+      wrap.innerHTML = categories.map(c => {
+        const personal = !!c.owner;
+        const canDelete = state.accType === 'DEVELOPER' ||
+          (personal && Number(c.owner.id) === Number(state.userId)) ||
+          (!personal && state.accType === 'FAMILY_MANAGER');
+        const scopeLabel = personal ? 'Pessoal' : 'Grupo';
+        const deleteAction = canDelete
+          ? '<div class="icon-actions"><div class="icon-btn danger" onclick="handleDeleteCategoria(' + c.id + ')">🗑️</div></div>'
+          : '';
+
+        return '<div class="cat-row">' +
+          '<span class="cat-dot ' + (c.type === 'INCOME' ? 'income' : 'expense') + '"></span>' +
+          '<span class="cat-name">' + c.name + '</span>' +
+          '<span class="cat-type">' + scopeLabel + ' · ' + (CAT_TYPE_LABEL[c.type] || c.type) + '</span>' +
+          deleteAction +
+          '</div>';
+      }).join('');
+    } catch (e) {
+      wrap.innerHTML = '<div class="empty-note">Erro ao carregar: ' + e.message + '</div>';
+    }
+  }
+
+  async function handleCreateCategoria(){
+    const nameInput = document.getElementById('categoria-nome');
+    const typeSel = document.getElementById('categoria-tipo');
+    const scopeSel = document.getElementById('categoria-escopo');
+    const errEl = document.getElementById('categoria-error');
+    const name = nameInput.value.trim();
+    if (!name) {
+      errEl.textContent = 'Informe o nome da categoria.';
+      return;
+    }
+
+    const isPersonal = scopeSel.value === 'PERSONAL';
+    if (!isPersonal && !isGroupManager()) {
+      errEl.textContent = 'Apenas Family Manager/Developer pode criar categorias do grupo.';
+      return;
+    }
+
+    const ownerId = isPersonal ? Number(state.userId) : null;
+    if (isPersonal && !ownerId) {
+      errEl.textContent = 'Não foi possível identificar seu usuário. Recarregue o login.';
+      return;
+    }
+
+    try {
+      await api('/categories', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          type: typeSel.value,
+          groupId: Number(state.groupId),
+          ownerId,
+          requesterId: Number(state.userId)
+        })
+      });
+      nameInput.value = '';
+      errEl.textContent = '';
+      await loadCategorias();
+      await loadQuickFlowOptions();
+    } catch (e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  async function handleDeleteCategoria(id){
+    try {
+      await api('/categories/' + id + '?requesterId=' + state.userId, { method: 'DELETE' });
+      await loadCategorias();
+      await loadQuickFlowOptions();
+    } catch (e) {
+      document.getElementById('categoria-error').textContent = e.message;
+    }
+  }
+
+  // ---------- lançamento rápido (tela Início) ----------
+  async function loadQuickFlowOptions(){
+    if (!state.userId) return;
+    const card = document.getElementById('quick-flow-card');
+    const empty = document.getElementById('quick-flow-empty');
+    try {
+      const accounts = await api('/accounts/group/' + state.groupId + '?requesterId=' + state.userId);
+      if (accounts.length === 0) {
+        card.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      card.style.display = 'block';
+      empty.style.display = 'none';
+
+      const accSel = document.getElementById('quick-account');
+      accSel.innerHTML = accounts.map(a => '<option value="' + a.id + '">' + a.name + '</option>').join('');
+
+      const categories = await api('/categories/group/' + state.groupId + '?requesterId=' + state.userId);
+      const catSel = document.getElementById('quick-category');
+      catSel.innerHTML = categories.length
+        ? categories.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('')
+        : '<option value="">Nenhuma categoria cadastrada</option>';
+    } catch (e) {
+      // silencioso -- tela Início já mostra erro de saldo se algo estiver errado
+    }
+  }
+
+  async function handleQuickFlow(){
+    const errEl = document.getElementById('quick-flow-error');
+    const accountId = document.getElementById('quick-account').value;
+    const categoryId = document.getElementById('quick-category').value;
+    const type = document.getElementById('quick-type').value;
+    const title = document.getElementById('quick-title').value.trim();
+    const amount = document.getElementById('quick-amount').value;
+
+    if (!accountId || !categoryId) { errEl.textContent = 'Crie uma carteira e uma categoria antes de lançar.'; return; }
+    if (!title || !amount) { errEl.textContent = 'Preencha título e valor.'; return; }
+
+    try {
+      await api('/balance-flows', {
+        method: 'POST',
+        body: JSON.stringify({
+          type, amount: Number(amount), title, notes: '',
+          accountId: Number(accountId), categoryId: Number(categoryId), creatorId: state.userId
+        })
+      });
+      document.getElementById('quick-title').value = '';
+      document.getElementById('quick-amount').value = '';
+      errEl.textContent = '';
+      loadInicio();
+    } catch (e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  // ---------- assistente IA ----------
+  function appendIaBubble(text, who){
+    const log = document.getElementById('ia-chat-log');
+    const firstNote = log.querySelector('.empty-note');
+    if (firstNote) firstNote.remove();
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = who === 'user'
+      ? 'align-self:flex-end; background:var(--primary); color:#fff; padding:8px 12px; border-radius:12px; max-width:85%; font-size:13px;'
+      : 'align-self:flex-start; background:var(--bg); padding:8px 12px; border-radius:12px; max-width:85%; font-size:13px; white-space:pre-wrap;';
+    bubble.textContent = text;
+    log.appendChild(bubble);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function handleAskAi(){
+    const input = document.getElementById('ia-question');
+    const btn = document.getElementById('ia-ask-btn');
+    const errEl = document.getElementById('ia-error');
+    const question = input.value.trim();
+    if (!question) return;
+    await sendAiQuestion(question, errEl, btn, 'Perguntar');
+    input.value = '';
+  }
+
+  // ---------- FAB de pergunta rápida ----------
+  function toggleFabPanel(){
+    const panel = document.getElementById('fab-panel');
+    const open = panel.classList.toggle('open');
+    if (open) {
+      if (!state.userId) {
+        document.getElementById('fab-error').textContent = 'Faça login antes de perguntar.';
+        return;
+      }
+      document.getElementById('fab-question').focus();
+    }
+  }
+
+  async function handleFabAsk(){
+    const input = document.getElementById('fab-question');
+    const btn = document.getElementById('fab-ask-btn');
+    const errEl = document.getElementById('fab-error');
+    const question = input.value.trim();
+    if (!question) return;
+    await sendAiQuestion(question, errEl, btn, 'Perguntar');
+    input.value = '';
+    document.getElementById('fab-panel').classList.remove('open');
+  }
+
+  // função compartilhada entre a tela IA e o FAB -- evita duplicar a chamada à API
+  async function sendAiQuestion(question, errEl, btn, btnLabel){
+    if (!state.userId) { errEl.textContent = 'Faça login antes de perguntar.'; return; }
+
+    appendIaBubble(question, 'user');
+    errEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Pensando...';
+
+    try {
+      const res = await api('/ai/ask', {
+        method: 'POST',
+        body: JSON.stringify({ question, requesterId: state.userId })
+      });
+      appendIaBubble(res.answer, 'ai');
+    } catch (e) {
+      errEl.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = btnLabel;
+    }
+  }
+
+  // ---------- tela Início ----------
+  async function loadInicio(){
+    if (!state.userId) return;
+    try {
+      const accounts = await api('/accounts/group/' + state.groupId + '?requesterId=' + state.userId);
+
+      const balances = await Promise.all(
+        accounts.map(a => api('/balance-flows/account/' + a.id + '/balance?requesterId=' + state.userId))
+      );
+      const total = balances.reduce((sum, b) => sum + Number(b), 0);
+      document.getElementById('fc-balance').textContent = fmtMoney(total);
+
+      const flowsPerAccount = await Promise.all(
+        accounts.map(a => api('/balance-flows/account/' + a.id + '?requesterId=' + state.userId))
+      );
+      const allFlows = flowsPerAccount.flat();
+      allFlows.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+
+      const list = document.getElementById('tx-list');
+      if (allFlows.length === 0) {
+        list.innerHTML = '<div class="empty-note">Nenhum lançamento ainda. Crie uma carteira e lance algo na aba Carteiras.</div>';
+        return;
+      }
+
+      list.innerHTML = allFlows.slice(0, 8).map(f => {
+        const isIncome = f.type === 'INCOME';
+        const icon = isIncome ? '💼' : '🛒';
+        const catName = f.category ? f.category.name : '';
+        const date = new Date(f.createTime).toLocaleDateString('pt-BR');
+        return '<div class="tx-row">' +
+          '<div class="tx-icon ' + (isIncome ? 'income' : 'expense') + '">' + icon + '</div>' +
+          '<div class="tx-info"><div class="tx-title">' + (f.title || '(sem título)') + '</div>' +
+          '<div class="tx-sub">' + catName + ' · ' + date + '</div></div>' +
+          '<div class="tx-amount ' + (isIncome ? 'income' : 'expense') + '">' +
+          (isIncome ? '+ ' : '- ') + fmtMoney(f.amount) + '</div></div>';
+      }).join('');
+    } catch (e) {
+      document.getElementById('tx-list').innerHTML = '<div class="empty-note">Erro ao carregar: ' + e.message + '</div>';
+    }
+  }
+
+  const ROLE_LABELS = {
+    member: 'Membro · Família Silva',
+    family_manager: 'Family Manager · Família Silva',
+    developer: 'Developer · acesso irrestrito'
+  };
+
+  function toggleDrawer(open){
+    document.getElementById('drawer').classList.toggle('open', open);
+    document.getElementById('overlay').classList.toggle('open', open);
+  }
+
+  function setRole(role){
+    document.body.className = 'role-' + role;
+    document.getElementById('drawer-role').textContent = ROLE_LABELS[role] || role;
+
+    document.querySelectorAll('.role-pill-btn').forEach(b => b.classList.remove('active'));
+    const pill = document.querySelector('.role-pill-btn[data-role="' + role + '"]');
+    if (pill) pill.classList.add('active');
+
+    const activeItem = document.querySelector('.drawer-item.active');
+    const stillVisible = activeItem && getComputedStyle(activeItem).display !== 'none';
+    if (!stillVisible) goTo('inicio');
+  }
+
+  function goTo(screen){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + screen).classList.add('active');
+    document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
+    document.querySelector('.drawer-item[data-screen="' + screen + '"]').classList.add('active');
+    toggleDrawer(false);
+    window.scrollTo(0,0);
+    if (screen === 'carteiras') loadCarteiras();
+    if (screen === 'categorias') { configureCategoryForm(); loadCategorias(); }
+  }
+</script>
+</body>
+</html>
