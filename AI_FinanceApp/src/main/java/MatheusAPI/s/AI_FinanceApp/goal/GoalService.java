@@ -172,7 +172,7 @@ public class GoalService {
     }
 }
 
-record GoalProjection(
+public record GoalProjection(
         long monthsNeeded,
         LocalDate projectedCompletionDate,
         boolean onTrack,

@@ -1,32 +1,24 @@
 package MatheusAPI.s.AI_FinanceApp.ai;
 
-import MatheusAPI.s.AI_FinanceApp.account.Account;
-import MatheusAPI.s.AI_FinanceApp.account.AccountService;
-import MatheusAPI.s.AI_FinanceApp.balanceflow.BalanceFlow;
-import MatheusAPI.s.AI_FinanceApp.balanceflow.BalanceFlowService;
 import MatheusAPI.s.AI_FinanceApp.common.AiIntegrationException;
-import MatheusAPI.s.AI_FinanceApp.goal.Goal;
-import MatheusAPI.s.AI_FinanceApp.goal.GoalService;
-import MatheusAPI.s.AI_FinanceApp.user.UserAccount;
-import MatheusAPI.s.AI_FinanceApp.user.UserAccountService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class AiService {
 
-    private final UserAccountService userAccountService;
-    private final AccountService accountService;
-    private final BalanceFlowService balanceFlowService;
-    private final GoalService goalService;
+    private final AiFunctions aiFunctions;
+    private final ObjectMapper objectMapper;
 
     @Value("${xai.api.key:}")
     private String apiKey;
@@ -34,16 +26,31 @@ public class AiService {
     @Value("${xai.base-url:https://api.x.ai/v1/chat/completions}")
     private String baseUrl;
 
-    @Value("${xai.model:grok-4.6}")
+    // grok-4-fast-reasoning: barato e rápido, com suporte a function calling.
+    // Verifique em https://console.x.ai quais modelos sua conta tem liberados.
+    @Value("${xai.model:grok-4-fast-reasoning}")
     private String model;
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    // Evita loop infinito caso o modelo insista em chamar funções sem nunca concluir.
+    private static final int MAX_TOOL_TURNS = 5;
 
     private static final String SYSTEM_PROMPT = """
-            Você é o assistente financeiro do app Bora Brincar. Responda em português do Brasil,
-            de forma direta e curta. Use os dados fornecidos no contexto para responder com precisão
-            sobre saldo, gastos e metas do usuário. Se o contexto não tiver a informação necessária,
-            diga isso claramente em vez de inventar números.
+            Você é o assistente financeiro do app SmartFin. Responda sempre em português do Brasil,
+            de forma direta e curta.
+
+            Você tem acesso a funções que consultam os dados financeiros reais do usuário (saldo,
+            carteiras, categorias, metas, lançamentos por período). SEMPRE use as funções disponíveis
+            para obter números exatos antes de responder perguntas sobre a situação financeira da
+            pessoa -- nunca invente ou estime valores. Se, mesmo depois de consultar os dados, a
+            informação pedida não existir, diga isso claramente em vez de chutar.
+
+            Ao responder se uma compra "cabe no orçamento" (função verificar_compra), sinalize o
+            resultado com um emoji: 🟢 status verde (cabe tranquilo), 🟡 status amarelo (cabe, mas
+            aperta o orçamento), 🔴 status vermelho (não é recomendado agora).
+
+            Perguntas de matemática pura (porcentagem, parcelamento, projeções simples) você pode
+            calcular diretamente, sem precisar de função. Perguntas de educação financeira (o que é
+            orçamento, reserva, etc.) você pode responder com seu próprio conhecimento.
             """;
 
     public String ask(String question, Long requesterId) {
@@ -51,22 +58,38 @@ public class AiService {
             throw new IllegalArgumentException("A pergunta não pode ser vazia");
         }
         if (apiKey == null || apiKey.isBlank()) {
-            throw new AiIntegrationException("Chave da API de IA não configurada no servidor (XAI_API_KEY ausente)");
+            throw new AiIntegrationException("Chave da API de IA não configurada no servidor (GROK_API_KEY ausente)");
         }
 
-        String context = buildFinancialContext(requesterId);
-        String userMessage = context + "\n\nPergunta do usuário: " + question;
+        List<GrokMessage> messages = new ArrayList<>();
+        messages.add(GrokMessage.system(SYSTEM_PROMPT));
+        messages.add(GrokMessage.user(question));
 
-        GrokChatRequest body = new GrokChatRequest(
-                model,
-                List.of(
-                        new GrokMessage("system", SYSTEM_PROMPT),
-                        new GrokMessage("user", userMessage)
-                )
-        );
+        List<GrokTool> tools = aiFunctions.getToolDefinitions();
+        RestClient restClient = RestClient.create();
 
+        for (int turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+            GrokChatRequest requestBody = new GrokChatRequest(model, messages, tools, "auto");
+            GrokChatResponse response = callGrok(restClient, requestBody);
+
+            GrokMessage assistantMessage = extractMessage(response);
+            messages.add(assistantMessage);
+
+            List<GrokToolCall> toolCalls = assistantMessage.getToolCalls();
+            if (toolCalls == null || toolCalls.isEmpty()) {
+                return assistantMessage.getContent() != null ? assistantMessage.getContent() : "";
+            }
+
+            for (GrokToolCall call : toolCalls) {
+                messages.add(GrokMessage.tool(call.getId(), executeToolCall(call, requesterId)));
+            }
+        }
+
+        throw new AiIntegrationException("A IA não conseguiu concluir a resposta (excesso de chamadas de função em sequência)");
+    }
+
+    private GrokChatResponse callGrok(RestClient restClient, GrokChatRequest body) {
         try {
-            RestClient restClient = RestClient.create();
             GrokChatResponse response = restClient.post()
                     .uri(baseUrl)
                     .header("Authorization", "Bearer " + apiKey)
@@ -78,62 +101,44 @@ public class AiService {
             if (response == null || response.choices() == null || response.choices().isEmpty()) {
                 throw new AiIntegrationException("A IA não retornou nenhuma resposta");
             }
-            return response.choices().get(0).message().content();
-
+            return response;
         } catch (RestClientException e) {
             throw new AiIntegrationException("Falha ao chamar a API de IA: " + e.getMessage(), e);
         }
     }
 
-    // Monta um resumo textual da situação financeira do usuário para dar contexto à IA.
-    // Reaproveita os services existentes -- as checagens de permissão de cada um já se aplicam aqui.
-    private String buildFinancialContext(Long requesterId) {
-        UserAccount requester = userAccountService.getById(requesterId);
-        Long groupId = requester.getGroup().getId();
-
-        List<Account> accounts = accountService.listByGroup(groupId, requesterId);
-        var balance = balanceFlowService.getBalanceByGroup(groupId, requesterId);
-        List<BalanceFlow> recentFlows = balanceFlowService.listByGroup(groupId, requesterId).stream()
-                .sorted(Comparator.comparing(BalanceFlow::getCreateTime).reversed())
-                .limit(10)
-                .toList();
-        List<Goal> groupGoals = goalService.listGroupGoals(groupId);
-        List<Goal> ownGoals = goalService.listByOwner(requesterId, requesterId);
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("Contexto financeiro de ").append(requester.getUsername()).append(":\n");
-        sb.append("Saldo total: R$ ").append(balance).append("\n");
-
-        sb.append("Carteiras (").append(accounts.size()).append("): ");
-        sb.append(accounts.stream().map(Account::getName).reduce((a, b) -> a + ", " + b).orElse("nenhuma"));
-        sb.append("\n");
-
-        sb.append("Últimos lançamentos:\n");
-        if (recentFlows.isEmpty()) {
-            sb.append("- nenhum lançamento ainda\n");
-        } else {
-            for (BalanceFlow f : recentFlows) {
-                sb.append("- [").append(f.getCreateTime().format(DATE_FMT)).append("] ")
-                        .append(f.getType()).append(" R$ ").append(f.getAmount())
-                        .append(" \"").append(f.getTitle()).append("\"")
-                        .append(" categoria: ").append(f.getCategory().getName())
-                        .append("\n");
-            }
+    private GrokMessage extractMessage(GrokChatResponse response) {
+        GrokMessage message = response.choices().get(0).message();
+        if (message == null) {
+            throw new AiIntegrationException("A IA retornou uma resposta vazia");
         }
+        return message;
+    }
 
-        sb.append("Metas do grupo (").append(groupGoals.size()).append("): ");
-        sb.append(groupGoals.stream().map(Goal::getName).reduce((a, b) -> a + ", " + b).orElse("nenhuma"));
-        sb.append("\n");
+    // Executa a função pedida pelo modelo e serializa o resultado (ou o erro) como JSON,
+    // que vira o conteúdo da mensagem "tool" devolvida pra IA continuar o raciocínio.
+    private String executeToolCall(GrokToolCall call, Long requesterId) {
+        try {
+            JsonNode args = parseArguments(call.getFunction().getArguments());
+            Object result = aiFunctions.execute(call.getFunction().getName(), args, requesterId);
+            return objectMapper.writeValueAsString(result);
+        } catch (Exception e) {
+            return writeErrorSafely(e.getMessage());
+        }
+    }
 
-        sb.append("Metas individuais de ").append(requester.getUsername()).append(" (").append(ownGoals.size()).append("): ");
-        sb.append(ownGoals.stream().map(Goal::getName).reduce((a, b) -> a + ", " + b).orElse("nenhuma"));
-        sb.append("\n");
+    private JsonNode parseArguments(String rawArguments) throws Exception {
+        if (rawArguments == null || rawArguments.isBlank()) {
+            return objectMapper.createObjectNode();
+        }
+        return objectMapper.readTree(rawArguments);
+    }
 
-        return sb.toString();
+    private String writeErrorSafely(String message) {
+        try {
+            return objectMapper.writeValueAsString(Map.of("erro", message != null ? message : "Erro desconhecido"));
+        } catch (Exception e) {
+            return "{\"erro\":\"Erro desconhecido\"}";
+        }
     }
 }
-
-record GrokMessage(String role, String content) {}
-record GrokChatRequest(String model, List<GrokMessage> messages) {}
-record GrokChoice(GrokMessage message) {}
-record GrokChatResponse(List<GrokChoice> choices) {}
