@@ -2,6 +2,7 @@ package MatheusAPI.s.AI_FinanceApp.category;
 
 import MatheusAPI.s.AI_FinanceApp.balanceflow.FlowType;
 import MatheusAPI.s.AI_FinanceApp.group.Group;
+import MatheusAPI.s.AI_FinanceApp.user.UserAccount;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -27,5 +28,10 @@ public class Category {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @NotNull
     private Group group;
+
+    // null = categoria do grupo (todos usam, só manager/dev gerencia).
+    // preenchido = categoria pessoal (só o dono usa e gerencia).
+    @ManyToOne(optional = true, fetch = FetchType.LAZY)
+    private UserAccount owner;
 
 }

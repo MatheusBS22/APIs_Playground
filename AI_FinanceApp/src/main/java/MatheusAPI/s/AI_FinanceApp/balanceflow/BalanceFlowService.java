@@ -55,6 +55,13 @@ public class BalanceFlowService {
             throw new IllegalArgumentException("Conta, categoria e usuário precisam pertencer ao mesmo grupo");
         }
 
+        // Categoria pessoal -- só o dono dela pode usar (ou DEVELOPER).
+        if (category.getOwner() != null
+                && creator.getAccType() != AccType.DEVELOPER
+                && !category.getOwner().getId().equals(creatorId)) {
+            throw new AccessDeniedException("Você não pode usar uma categoria pessoal de outro usuário");
+        }
+
         if (category.getType() != type) {
             throw new IllegalArgumentException("O tipo do lançamento não bate com o tipo da categoria");
         }

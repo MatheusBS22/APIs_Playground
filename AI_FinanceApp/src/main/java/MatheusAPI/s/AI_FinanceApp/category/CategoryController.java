@@ -16,7 +16,7 @@ public class CategoryController {
 
     @PostMapping
     public ResponseEntity<Category> create(@RequestBody CreateCategoryRequest request) {
-        Category category = categoryService.create(request.name(), request.type(), request.groupId(), request.requesterId());
+        Category category = categoryService.create(request.name(), request.type(), request.groupId(), request.ownerId(), request.requesterId());
         return ResponseEntity.ok(category);
     }
 
@@ -26,8 +26,8 @@ public class CategoryController {
     }
 
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<Category>> listByGroup(@PathVariable Long groupId) {
-        return ResponseEntity.ok(categoryService.listByGroup(groupId));
+    public ResponseEntity<List<Category>> listByGroup(@PathVariable Long groupId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(categoryService.listByGroup(groupId, requesterId));
     }
 
     @PutMapping("/{id}")
@@ -42,5 +42,5 @@ public class CategoryController {
     }
 }
 
-record CreateCategoryRequest(String name, FlowType type, Long groupId, Long requesterId) {}
+record CreateCategoryRequest(String name, FlowType type, Long groupId, Long ownerId, Long requesterId) {}
 record UpdateCategoryNameRequest(String name, Long requesterId) {}
