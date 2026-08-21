@@ -23,12 +23,12 @@ public class AiService {
     @Value("${xai.api.key:}")
     private String apiKey;
 
-    @Value("${xai.base-url:https://api.x.ai/v1/chat/completions}")
+    @Value("${xai.base-url:https://api.groq.com/openai/v1/chat/completions}")
     private String baseUrl;
 
-    // grok-4-fast-reasoning: barato e rápido, com suporte a function calling.
-    // Verifique em https://console.x.ai quais modelos sua conta tem liberados.
-    @Value("${xai.model:grok-4-fast-reasoning}")
+    // llama-3.3-70b-versatile: modelo gratuito na Groq com suporte a function calling.
+    // Verifique em https://console.groq.com quais modelos sua conta tem liberados.
+    @Value("${xai.model:llama-3.3-70b-versatile}")
     private String model;
 
     // Evita loop infinito caso o modelo insista em chamar funções sem nunca concluir.
@@ -58,7 +58,7 @@ public class AiService {
             throw new IllegalArgumentException("A pergunta não pode ser vazia");
         }
         if (apiKey == null || apiKey.isBlank()) {
-            throw new AiIntegrationException("Chave da API de IA não configurada no servidor (GROK_API_KEY ausente)");
+            throw new AiIntegrationException("Chave da API de IA não configurada no servidor (GROQ_API_KEY ausente)");
         }
 
         List<GrokMessage> messages = new ArrayList<>();
