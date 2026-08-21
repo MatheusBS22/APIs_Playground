@@ -172,9 +172,3 @@ public class GoalService {
     }
 }
 
-public record GoalProjection(
-        long monthsNeeded,
-        LocalDate projectedCompletionDate,
-        boolean onTrack,
-        BigDecimal monthlyDifference
-) {}
