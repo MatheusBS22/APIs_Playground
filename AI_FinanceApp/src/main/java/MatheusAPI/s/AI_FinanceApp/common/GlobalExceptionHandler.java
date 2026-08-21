@@ -21,4 +21,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
     }
+
+    // Falha ao chamar a API de IA externa (Grok) -- 502, o servidor tentou e o upstream falhou.
+    @ExceptionHandler(AiIntegrationException.class)
+    public ResponseEntity<Map<String, String>> handleAiIntegration(AiIntegrationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", ex.getMessage()));
+    }
 }
