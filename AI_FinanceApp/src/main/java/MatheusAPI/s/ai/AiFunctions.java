@@ -47,7 +47,7 @@ public class AiFunctions {
                                 "pergunta envolver saldo, quanto dinheiro a pessoa tem, ou o saldo de uma carteira específica.",
                         """
                         {"type":"object","properties":{
-                          "carteira":{"type":"string","description":"Nome (ou parte do nome) de uma carteira específica, opcional. Se omitido, retorna todas as carteiras do usuário."}
+                          "carteira":{"type":["string","null"],"description":"Nome (ou parte do nome) de uma carteira específica, opcional. Se omitido, retorna todas as carteiras do usuário."}
                         }}
                         """),
                 tool("analisar_gastos_por_categoria",
@@ -55,7 +55,7 @@ public class AiFunctions {
                                 "perguntas sobre onde a pessoa está gastando mais, ou gastos por categoria (alimentação, transporte, etc).",
                         """
                         {"type":"object","properties":{
-                          "tipo":{"type":"string","enum":["EXPENSE","INCOME"],"description":"Filtra só despesas (EXPENSE) ou só receitas (INCOME). Opcional -- se omitido, considera os dois."}
+                          "tipo":{"type":["string","null"],"enum":["EXPENSE","INCOME",null],"description":"Filtra só despesas (EXPENSE) ou só receitas (INCOME). Opcional -- se omitido, considera os dois."}
                         }}
                         """),
                 tool("verificar_compra",
@@ -65,7 +65,7 @@ public class AiFunctions {
                         """
                         {"type":"object","properties":{
                           "valor":{"type":"number","description":"Valor da compra em reais."},
-                          "carteira":{"type":"string","description":"Nome da carteira a considerar, opcional. Se omitido, usa o saldo total do usuário."}
+                          "carteira":{"type":["string","null"],"description":"Nome da carteira a considerar, opcional. Se omitido, usa o saldo total do usuário."}
                         },"required":["valor"]}
                         """),
                 tool("consultar_metas",
@@ -73,7 +73,7 @@ public class AiFunctions {
                                 "dele), com valor alvo, valor atual, quanto falta e quanto precisa guardar por mês para cumprir o prazo.",
                         """
                         {"type":"object","properties":{
-                          "nome":{"type":"string","description":"Filtra pelo nome (ou parte do nome) da meta, opcional. Se omitido, lista todas."}
+                          "nome":{"type":["string","null"],"description":"Filtra pelo nome (ou parte do nome) da meta, opcional. Se omitido, lista todas."}
                         }}
                         """),
                 tool("simular_aporte_meta",
@@ -81,8 +81,8 @@ public class AiFunctions {
                                 "proposto, e se isso cumpre o prazo da meta. Use consultar_metas antes para descobrir o id, se necessário.",
                         """
                         {"type":"object","properties":{
-                          "metaId":{"type":"integer","description":"Id da meta (obtido via consultar_metas)."},
-                          "nome":{"type":"string","description":"Nome da meta, alternativa ao metaId caso o id não seja conhecido."},
+                          "metaId":{"type":["integer","null"],"description":"Id da meta (obtido via consultar_metas)."},
+                          "nome":{"type":["string","null"],"description":"Nome da meta, alternativa ao metaId caso o id não seja conhecido."},
                           "aporteMensal":{"type":"number","description":"Valor mensal proposto, em reais."}
                         },"required":["aporteMensal"]}
                         """),
