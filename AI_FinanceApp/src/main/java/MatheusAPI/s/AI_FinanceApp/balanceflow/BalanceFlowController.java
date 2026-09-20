@@ -49,6 +49,11 @@ public class BalanceFlowController {
         return ResponseEntity.ok(balanceFlowService.getBalanceByGroup(groupId, requesterId));
     }
 
+    @GetMapping("/group/{groupId}/monthly-balance")
+    public ResponseEntity<List<MonthlyBalance>> getMonthlyBalance(@PathVariable Long groupId,@RequestParam Long requesterId,@RequestParam(defaultValue = "6") int months) {
+        return ResponseEntity.ok(balanceFlowService.getMonthlyBalance(groupId, requesterId, months));
+    }
+
     @GetMapping("/group/{groupId}/breakdown")
     public ResponseEntity<Map<Long, BigDecimal>> getCategoryBreakdown(@PathVariable Long groupId, @RequestParam Long requesterId) {
         return ResponseEntity.ok(balanceFlowService.getCategoryBreakdown(groupId, requesterId));
