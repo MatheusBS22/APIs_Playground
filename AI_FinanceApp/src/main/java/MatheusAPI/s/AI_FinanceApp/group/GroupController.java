@@ -4,6 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import MatheusAPI.s.AI_FinanceApp.user.UserAccount;
+import MatheusAPI.s.AI_FinanceApp.user.UserAccountService;
+import java.util.List;
+
 @RestController
 @RequestMapping("/groups")
 @RequiredArgsConstructor
