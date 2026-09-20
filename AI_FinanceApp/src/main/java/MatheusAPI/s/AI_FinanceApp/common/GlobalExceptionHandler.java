@@ -27,4 +27,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleAiIntegration(AiIntegrationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", ex.getMessage()));
     }
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Map<String, String>> handleAuth(AuthException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", ex.getMessage()));
+    }
 }
