@@ -32,6 +32,21 @@ public class GroupController {
         groupService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{groupId}/members/{userId}")
+    public ResponseEntity<UserAccount> addMember(@PathVariable Long groupId, @PathVariable Long userId,@RequestParam Long requesterId) {
+        return ResponseEntity.ok(groupService.addMember(groupId, userId, requesterId));
+    }
+
+    @DeleteMapping("/{groupId}/members/{userId}")
+    public ResponseEntity<UserAccount> removeMember(@PathVariable Long groupId, @PathVariable Long userId, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(groupService.removeMember(groupId, userId, requesterId));
+    }
+
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<List<UserAccount>> listMembers(@PathVariable Long groupId) {
+        return ResponseEntity.ok(userAccountService.listByGroup(groupId));
+    }
 }
 
 record CreateGroupRequest(String name) {}
