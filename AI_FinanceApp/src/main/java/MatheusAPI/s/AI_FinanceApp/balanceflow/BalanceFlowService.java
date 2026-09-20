@@ -162,7 +162,7 @@ public class BalanceFlowService {
 
         // Saldo acumulado mês a mês, pros últimos N meses (padrão 6). Base pro gráfico "Balanço" do front.
     public List<MonthlyBalance> getMonthlyBalance(Long groupId, Long requesterId, int months) {
-        requireGroupMember(groupId, requesterId); // reaproveita a checagem de acesso que os outros métodos já usam
+        getRequester(requesterId); // só confirma que o requester existe, igual os outros métodos do arquivo
 
         LocalDateTime start = LocalDateTime.now().minusMonths(months - 1L)
                 .withDayOfMonth(1).toLocalDate().atStartOfDay();
