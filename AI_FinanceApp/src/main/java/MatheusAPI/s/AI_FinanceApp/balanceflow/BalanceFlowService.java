@@ -205,3 +205,4 @@ public class BalanceFlowService {
         }
     }
 }
+record MonthlyBalance(String month, BigDecimal accumulatedBalance) {}
