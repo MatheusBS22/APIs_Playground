@@ -14,6 +14,7 @@ import java.util.List;
 public class GroupController {
 
     private final GroupService groupService;
+    private final UserAccountService userAccountService;
 
     @PostMapping
     public ResponseEntity<Group> create(@RequestBody CreateGroupRequest request) {
