@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,5 +33,9 @@ public class Account {
     @Column(nullable = false, updatable = false)
     @NotNull
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    @JsonIgnore // nunca devolve o hash na resposta da API
+    private String password;
 
 }
