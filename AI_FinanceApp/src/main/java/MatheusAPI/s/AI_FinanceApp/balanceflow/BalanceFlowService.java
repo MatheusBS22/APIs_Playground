@@ -78,7 +78,7 @@ public class BalanceFlowService {
         flow.setCreateTime(LocalDateTime.now());
 
         return balanceFlowRepository.save(flow);
-    }
+    } 
 
     public BalanceFlow getById(Long id) {
         return balanceFlowRepository.findById(id)
@@ -158,6 +158,36 @@ public class BalanceFlowService {
         BalanceFlow flow = getById(id);
         requireOwnerOrDeveloper(flow.getCreator().getId(), requesterId, "apagar esse lançamento");
         balanceFlowRepository.delete(flow);
+    }
+
+        // Saldo acumulado mês a mês, pros últimos N meses (padrão 6). Base pro gráfico "Balanço" do front.
+    public List<MonthlyBalance> getMonthlyBalance(Long groupId, Long requesterId, int months) {
+        requireGroupMember(groupId, requesterId); // reaproveita a checagem de acesso que os outros métodos já usam
+
+        LocalDateTime start = LocalDateTime.now().minusMonths(months - 1L)
+                .withDayOfMonth(1).toLocalDate().atStartOfDay();
+
+        List<BalanceFlow> flows = balanceFlowRepository
+                .findByGroupIdAndCreateTimeGreaterThanEqual(groupId, start);
+
+        Map<YearMonth, BigDecimal> byMonth = new TreeMap<>();
+        for (int i = 0; i < months; i++) {
+            byMonth.put(YearMonth.now().minusMonths(months - 1L - i), BigDecimal.ZERO);
+        }
+
+        for (BalanceFlow flow : flows) {
+            YearMonth ym = YearMonth.from(flow.getCreateTime());
+            BigDecimal delta = flow.getType() == FlowType.INCOME ? flow.getAmount() : flow.getAmount().negate();
+            byMonth.merge(ym, delta, BigDecimal::add);
+        }
+
+        List<MonthlyBalance> result = new ArrayList<>();
+        BigDecimal accumulated = BigDecimal.ZERO;
+        for (Map.Entry<YearMonth, BigDecimal> entry : byMonth.entrySet()) {
+            accumulated = accumulated.add(entry.getValue());
+            result.add(new MonthlyBalance(entry.getKey().toString(), accumulated));
+        }
+        return result;
     }
 
     // ---------- helpers ----------
