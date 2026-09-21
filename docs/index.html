@@ -1071,7 +1071,7 @@
     const code = codeInput.value.trim().toUpperCase();
     if (!code) { errEl.textContent = 'Informe o código de convite.'; return; }
     try {
-      await api('/groups/join?inviteCode=' + encodeURIComponent(code) + '&requesterId=' + state.userId);
+      await api('/groups/join?inviteCode=' + encodeURIComponent(code) + '&requesterId=' + state.userId, { method: 'POST' });
       const user = await api('/users/' + state.userId);
       state.groupId = user.group.id;
       codeInput.value = '';
