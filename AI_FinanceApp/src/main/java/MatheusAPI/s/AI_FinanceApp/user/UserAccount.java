@@ -35,6 +35,14 @@ public class UserAccount {
     @Column(nullable = false)
     @JsonIgnore // nunca devolve o hash de senha na resposta da API
     private String password;
+
+    // Código que a pessoa passa pra quem já montou um grupo familiar, pra ser adicionada nele.
+    // Nunca aparece em nenhum JSON de UserAccount -- só é devolvido pelo endpoint dedicado,
+    // que confere que quem pediu é o próprio dono (ou DEVELOPER).
+    @Column(unique = true, length = 10)
+    @JsonIgnore
+    private String inviteCode;
+
     //Constructor WithAll and Without args for Jakarta
     public UserAccount() {
     }
