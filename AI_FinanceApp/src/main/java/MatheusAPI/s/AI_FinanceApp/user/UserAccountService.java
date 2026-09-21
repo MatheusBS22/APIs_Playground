@@ -17,10 +17,13 @@ public class UserAccountService {
     private final UserAccountRepository userAccountRepository;
     private final GroupRepository groupRepository;
     private final GroupService groupService;
+    private final PasswordEncoder passwordEncoder;
 
-    // Cadastro em si não exige requesterId -- é o próprio ato de "nascer" no sistema.
     @Transactional
-    public UserAccount create(AccType accType, String name, String surname) {
+    public UserAccount create(AccType accType, String name, String surname, String rawPassword) {
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Senha é obrigatória");
+        }
         Group group = groupService.create(name + " " + "Group");
         UserAccount userAccount = new UserAccount();
         userAccount.setGroup(group);
@@ -28,7 +31,7 @@ public class UserAccountService {
         userAccount.setSurname(surname);
         userAccount.setAccType(accType);
         userAccount.setAccPermissions(accType.getDefaultPermissions());
-
+        userAccount.setPassword(passwordEncoder.encode(rawPassword));
         return userAccountRepository.save(userAccount);
     }
 
