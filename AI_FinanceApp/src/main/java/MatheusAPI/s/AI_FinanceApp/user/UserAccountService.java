@@ -24,6 +24,10 @@ public class UserAccountService {
         if (rawPassword == null || rawPassword.isBlank()) {
             throw new IllegalArgumentException("Senha é obrigatória");
         }
+        if (userAccountRepository.existsByUsername(name)) {
+            throw new IllegalArgumentException("Esse nome de usuário já está em uso");
+        }
+        
         Group group = groupService.create(name + " " + "Group");
         UserAccount userAccount = new UserAccount();
         userAccount.setGroup(group);
