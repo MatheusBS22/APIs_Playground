@@ -2,6 +2,7 @@ package MatheusAPI.s.AI_FinanceApp.user;
 
 import MatheusAPI.s.AI_FinanceApp.group.Group;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +32,9 @@ public class UserAccount {
     private String username;
     private String surname;
 
+    @Column(nullable = false)
+    @JsonIgnore // nunca devolve o hash de senha na resposta da API
+    private String password;
     //Constructor WithAll and Without args for Jakarta
     public UserAccount() {
     }
