@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface UserAccountRepository extends JpaRepository<UserAccount, Long> {
     List<UserAccount> findByGroupId(Long groupId);
     Optional<UserAccount> findByUsername(String username);
+    boolean existsByUsername(String username);
 }
