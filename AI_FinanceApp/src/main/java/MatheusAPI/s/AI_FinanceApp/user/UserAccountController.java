@@ -13,7 +13,7 @@ public class UserAccountController {
 
     @PostMapping
     public ResponseEntity<UserAccount> create(@RequestBody CreateUserAccountRequest request) {
-        UserAccount userAccount = userAccountService.create(request.accType(), request.username(), request.surname());
+        UserAccount userAccount = userAccountService.create(request.accType(), request.username(), request.surname(), request.password());
         return ResponseEntity.ok(userAccount);
     }
 
@@ -34,5 +34,5 @@ public class UserAccountController {
     }
 }
 
-record CreateUserAccountRequest(AccType accType, String username, String surname) {}
+record CreateUserAccountRequest(AccType accType, String username, String surname, String password) {}
 record UpdateUserAccountNameRequest(String name, Long requesterId) {}
