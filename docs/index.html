@@ -838,13 +838,17 @@
   };
 
   async function api(path, options) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-    const res = await fetch(state.apiBase + path, {
-      headers,
-      ...options
-    });
-
+  const headers = { 'Content-Type': 'application/json' };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const res = await fetch(state.apiBase + path, {
+    headers,
+    ...options
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error((data && data.message) || 'Erro ' + res.status);
+  return data;
+}
   function fmtMoney(v){
     return Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   }
