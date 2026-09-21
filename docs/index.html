@@ -474,11 +474,11 @@
   <div class="login-card">
     <div class="login-logo">S</div>
     <div class="login-title">SmartFin</div>
-    <div class="login-sub">Ainda sem login de verdade — por enquanto, crie ou carregue um usuário pelo ID.</div>
+    <div class="login-sub">Crie sua conta ou entre com usuário e senha.</div>
 
     <div class="login-tabs">
-      <div class="login-tab active" data-tab="criar" onclick="switchLoginTab('criar')">Criar usuário</div>
-      <div class="login-tab" data-tab="carregar" onclick="switchLoginTab('carregar')">Já tenho ID</div>
+      <div class="login-tab active" data-tab="criar" onclick="switchLoginTab('criar')">Criar conta</div>
+      <div class="login-tab" data-tab="entrar" onclick="switchLoginTab('entrar')">Entrar</div>
     </div>
 
     <form class="login-form active" id="login-form-criar" onsubmit="event.preventDefault(); handleCreateUser();">
@@ -489,11 +489,13 @@
         <option value="FAMILY_MANAGER">Family Manager</option>
         <option value="DEVELOPER">Developer</option>
       </select>
-      <button type="submit" class="login-btn">Criar e entrar</button>
+      <input type="password" id="login-password" placeholder="Senha" required minlength="4">
+      <button type="submit" class="login-btn">Criar conta e entrar</button>
     </form>
 
-    <form class="login-form" id="login-form-carregar" onsubmit="event.preventDefault(); handleLoadUser();">
-      <input type="number" id="login-userid" placeholder="ID do usuário" required>
+    <form class="login-form" id="login-form-entrar" onsubmit="event.preventDefault(); handleLogin();">
+      <input type="text" id="entrar-username" placeholder="Usuário (nome)" required>
+      <input type="password" id="entrar-password" placeholder="Senha" required>
       <button type="submit" class="login-btn">Entrar</button>
     </form>
 
@@ -827,36 +829,31 @@
 
 <script>
   // ---------- estado + comunicação com a API ----------
-  const state = {
+    const state = {
     apiBase: 'https://gabisprojectapi.onrender.com',
     userId: null,
     groupId: null,
-    accType: null
+    accType: null,
+    token: null
   };
 
   async function api(path, options) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
     const res = await fetch(state.apiBase + path, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       ...options
     });
-    if (!res.ok) {
-      let msg = 'Erro ' + res.status;
-      try { const body = await res.json(); if (body && body.message) msg = body.message; } catch (e) {}
-      throw new Error(msg);
-    }
-    if (res.status === 204) return null;
-    return res.json();
-  }
 
   function fmtMoney(v){
     return Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   }
 
-  // ---------- tela de entrada ----------
+   // ---------- tela de entrada ----------
   function switchLoginTab(tab){
     document.querySelectorAll('.login-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.getElementById('login-form-criar').classList.toggle('active', tab === 'criar');
-    document.getElementById('login-form-carregar').classList.toggle('active', tab === 'carregar');
+    document.getElementById('login-form-entrar').classList.toggle('active', tab === 'entrar');
     document.getElementById('login-error').textContent = '';
   }
 
@@ -864,26 +861,37 @@
     document.getElementById('login-error').textContent = err.message || 'Algo deu errado.';
   }
 
+  async function doLogin(username, password){
+    const res = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    state.token = res.token;
+    const user = await api('/users/' + res.userId);
+    onUserLoaded(user);
+  }
+
   async function handleCreateUser(){
     const username = document.getElementById('login-username').value.trim();
     const surname = document.getElementById('login-surname').value.trim();
     const accType = document.getElementById('login-acctype').value;
+    const password = document.getElementById('login-password').value;
     try {
-      const user = await api('/users', {
+      await api('/users', {
         method: 'POST',
-        body: JSON.stringify({ accType, username, surname })
+        body: JSON.stringify({ accType, username, surname, password })
       });
-      onUserLoaded(user);
+      await doLogin(username, password);
     } catch (e) {
       showLoginError(e);
     }
   }
 
-  async function handleLoadUser(){
-    const id = document.getElementById('login-userid').value.trim();
+  async function handleLogin(){
+    const username = document.getElementById('entrar-username').value.trim();
+    const password = document.getElementById('entrar-password').value;
     try {
-      const user = await api('/users/' + id);
-      onUserLoaded(user);
+      await doLogin(username, password);
     } catch (e) {
       showLoginError(e);
     }
@@ -901,7 +909,6 @@
     document.getElementById('fc-avatar').textContent = initial;
     document.getElementById('fc-name').textContent = 'Olá, ' + user.username;
 
-    // perfil real reflete direto no seletor -- sem simulação nesse momento
     setRole(user.accType.toLowerCase());
     configureCategoryForm();
 
