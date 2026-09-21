@@ -28,7 +28,7 @@ public class UserAccount {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @NotNull
     private Group group;
-
+    @Column(unique = true)
     private String username;
     private String surname;
 
