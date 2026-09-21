@@ -1,6 +1,8 @@
 package MatheusAPI.s.AI_FinanceApp.group;
 
 import MatheusAPI.s.AI_FinanceApp.common.AccessDeniedException;
+import MatheusAPI.s.AI_FinanceApp.notification.NotificationService;
+import MatheusAPI.s.AI_FinanceApp.notification.NotificationType;
 import MatheusAPI.s.AI_FinanceApp.user.AccPermissions;
 import MatheusAPI.s.AI_FinanceApp.user.AccType;
 import MatheusAPI.s.AI_FinanceApp.user.UserAccount;
@@ -17,6 +19,7 @@ import java.util.List;
 public class GroupService {
     private final GroupRepository groupRepository;
     private final UserAccountRepository userAccountRepository;
+    private final NotificationService notificationService;
 
     // Nenhum grupo familiar pode passar disso -- por enquanto é fixo, sem plano diferenciado.
     public static final int MAX_FAMILY_GROUP_SIZE = 14;
@@ -128,8 +131,15 @@ public class GroupService {
         Group targetGroup = inviter.getGroup();
         requireHasRoomFor(targetGroup.getId(), 1);
 
+        List<UserAccount> existingMembers = userAccountRepository.findByGroupId(targetGroup.getId());
+
         requester.setGroup(targetGroup);
-        return userAccountRepository.save(requester);
+        UserAccount saved = userAccountRepository.save(requester);
+
+        notificationService.notifyOthers(existingMembers, requester.getId(), NotificationType.MEMBER_JOINED,
+                requester.getUsername() + " entrou no grupo");
+
+        return saved;
     }
 
     // Sair por conta própria (sem precisar de outro manager). Se quem sai é o manager, o grupo
@@ -140,11 +150,19 @@ public class GroupService {
         boolean isOwner = requester.getAccType() == AccType.FAMILY_MANAGER;
 
         if (!isOwner) {
+            Long groupId = requester.getGroup().getId();
+            List<UserAccount> remainingMembers = userAccountRepository.findByGroupId(groupId);
+
             sendToNewPersonalGroup(requester);
             userAccountRepository.save(requester);
+
+            notificationService.notifyOthers(remainingMembers, requester.getId(), NotificationType.MEMBER_LEFT,
+                    requester.getUsername() + " saiu do grupo");
             return;
         }
 
+        // O manager saindo desfaz o grupo inteiro -- não faz sentido avisar ninguém,
+        // já que todo mundo (inclusive quem saiu) está voltando a não ter grupo.
         Long groupId = requester.getGroup().getId();
         List<UserAccount> members = userAccountRepository.findByGroupId(groupId);
         for (UserAccount member : members) {
