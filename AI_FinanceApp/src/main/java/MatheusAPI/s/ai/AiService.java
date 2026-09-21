@@ -26,9 +26,8 @@ public class AiService {
     @Value("${xai.base-url:https://api.groq.com/openai/v1/chat/completions}")
     private String baseUrl;
 
-    // llama-3.3-70b-versatile: modelo gratuito na Groq com suporte a function calling.
-    // Verifique em https://console.groq.com quais modelos sua conta tem liberados.
-    @Value("${xai.model:llama-3.3-70b-versatile}")
+    
+    @Value("${xai.model:openai/gpt-oss-120b}")
     private String model;
 
     // Evita loop infinito caso o modelo insista em chamar funções sem nunca concluir.
