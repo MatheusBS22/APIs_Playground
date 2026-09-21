@@ -39,7 +39,7 @@ public class GroupController {
     }
 
     @PostMapping("/{groupId}/members/{userId}")
-    public ResponseEntity<UserAccount> addMember(@PathVariable Long groupId, @PathVariable Long userId,@RequestParam Long requesterId) {
+    public ResponseEntity<UserAccount> addMember(@PathVariable Long groupId, @PathVariable Long userId, @RequestParam Long requesterId) {
         return ResponseEntity.ok(groupService.addMember(groupId, userId, requesterId));
     }
 
@@ -51,6 +51,29 @@ public class GroupController {
     @GetMapping("/{groupId}/members")
     public ResponseEntity<List<UserAccount>> listMembers(@PathVariable Long groupId) {
         return ResponseEntity.ok(userAccountService.listByGroup(groupId));
+    }
+
+    // ---------- fluxo novo ----------
+
+    // Monta um grupo familiar a partir do grupo pessoal do próprio usuário; ele vira o manager.
+    @PostMapping("/family")
+    public ResponseEntity<Group> createFamilyGroup(@RequestParam Long requesterId, @RequestBody(required = false) CreateGroupRequest request) {
+        String name = request != null ? request.name() : null;
+        return ResponseEntity.ok(groupService.createFamilyGroup(requesterId, name));
+    }
+
+    // Entra num grupo familiar usando o código de convite de quem já está lá dentro.
+    @PostMapping("/join")
+    public ResponseEntity<UserAccount> join(@RequestParam String inviteCode, @RequestParam Long requesterId) {
+        return ResponseEntity.ok(groupService.joinByInviteCode(inviteCode, requesterId));
+    }
+
+    // Sai por conta própria. Se quem sai é o manager, o grupo inteiro se desfaz -- o front precisa
+    // avisar isso antes de chamar esse endpoint.
+    @PostMapping("/leave")
+    public ResponseEntity<Void> leave(@RequestParam Long requesterId) {
+        groupService.leaveGroup(requesterId);
+        return ResponseEntity.noContent().build();
     }
 }
 
