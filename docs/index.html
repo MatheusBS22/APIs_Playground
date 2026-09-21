@@ -126,7 +126,7 @@
   .drawer-item .ic{width:22px; text-align:center; font-size:16px;}
   .drawer-item:hover{background:#F1F4FF;}
   .drawer-item.active{background:#EEF2FF; color:var(--primary);}
-  .badge-dot{margin-left:auto; width:8px;height:8px;border-radius:50%;background:var(--coral);}
+  .badge-dot{display:none; margin-left:auto; width:8px;height:8px;border-radius:50%;background:var(--coral);}
   .drawer-foot{padding:14px 20px 22px; font-size:11px; color:var(--ink-faint); border-top:1px solid var(--line);}
 
   /* ---------- SCREENS ---------- */
@@ -768,39 +768,13 @@
 
   <!-- ===================== AVISOS ===================== -->
   <section class="screen" id="screen-avisos">
-    <div class="section-title" style="margin-top:14px;"><h2>Avisos e notificações</h2></div>
+    <div class="section-title" style="margin-top:14px; display:flex; align-items:center; justify-content:space-between;">
+      <h2>Avisos e notificações</h2>
+      <button class="btn-ghost-block" id="avisos-read-all-btn" style="width:auto; padding:6px 12px; font-size:12px;" onclick="handleMarkAllRead()">Marcar todas como lidas</button>
+    </div>
 
-    <div class="card">
-      <div class="notif-row">
-        <div class="notif-icon goal">🎯</div>
-        <div class="notif-body">
-          <div class="notif-text"><b>Reforma da cozinha</b> passou de 60% da meta!</div>
-          <div class="notif-time">há 2 horas</div>
-        </div>
-        <div class="notif-unread-dot"></div>
-      </div>
-      <div class="notif-row">
-        <div class="notif-icon group">👨‍👩‍👧</div>
-        <div class="notif-body">
-          <div class="notif-text"><b>Carlos</b> aportou R$ 150,00 no Fundo de emergência</div>
-          <div class="notif-time">ontem</div>
-        </div>
-        <div class="notif-unread-dot"></div>
-      </div>
-      <div class="notif-row">
-        <div class="notif-icon alert">⚠️</div>
-        <div class="notif-body">
-          <div class="notif-text">Seus gastos com <b>Lazer</b> já passaram a média dos últimos 3 meses</div>
-          <div class="notif-time">2 dias atrás</div>
-        </div>
-      </div>
-      <div class="notif-row">
-        <div class="notif-icon group">👨‍👩‍👧</div>
-        <div class="notif-body">
-          <div class="notif-text"><b>Pedro Silva</b> entrou no grupo</div>
-          <div class="notif-time">3 dias atrás</div>
-        </div>
-      </div>
+    <div class="card" id="avisos-list">
+      <div class="notif-empty" style="text-align:center; color:var(--ink-faint); font-size:13px; padding:10px 0;">Carregando...</div>
     </div>
   </section>
 
@@ -929,6 +903,7 @@
     document.getElementById('login-overlay').style.display = 'none';
     loadInicio();
     loadQuickFlowOptions();
+    refreshUnreadBadge();
   }
 
   // ---------- carteiras (contas) ----------
@@ -1035,6 +1010,85 @@
       document.getElementById('grupo-my-invite-code').value = inviteRes.inviteCode;
     } catch (e) {
       listWrap.innerHTML = '<div class="empty-note">Erro ao carregar: ' + esc(e.message) + '</div>';
+    }
+  }
+
+  // ---------- avisos ----------
+
+  const NOTIF_ICON = {
+    GOAL_CONTRIBUTION: { cls: 'group', emoji: '👨‍👩‍👧' },
+    GOAL_MILESTONE:    { cls: 'goal',  emoji: '🎯' },
+    MEMBER_JOINED:     { cls: 'group', emoji: '👨‍👩‍👧' },
+    MEMBER_LEFT:       { cls: 'group', emoji: '👨‍👩‍👧' }
+  };
+
+  function fmtRelativeTime(iso){
+    const then = new Date(iso).getTime();
+    const diffMin = Math.max(0, Math.round((Date.now() - then) / 60000));
+    if (diffMin < 1) return 'agora';
+    if (diffMin < 60) return 'há ' + diffMin + ' min';
+    const diffH = Math.round(diffMin / 60);
+    if (diffH < 24) return 'há ' + diffH + (diffH === 1 ? ' hora' : ' horas');
+    const diffD = Math.round(diffH / 24);
+    if (diffD === 1) return 'ontem';
+    if (diffD < 7) return diffD + ' dias atrás';
+    return then ? new Date(iso).toLocaleDateString('pt-BR') : '';
+  }
+
+  function notifRowHtml(n){
+    const icon = NOTIF_ICON[n.type] || { cls: 'alert', emoji: '🔔' };
+    return '<div class="notif-row" data-id="' + n.id + '"' + (n.read ? '' : ' onclick="handleMarkRead(' + n.id + ')" style="cursor:pointer;"') + '>' +
+      '<div class="notif-icon ' + icon.cls + '">' + icon.emoji + '</div>' +
+      '<div class="notif-body">' +
+        '<div class="notif-text">' + esc(n.message) + '</div>' +
+        '<div class="notif-time">' + fmtRelativeTime(n.createdAt) + '</div>' +
+      '</div>' +
+      (n.read ? '' : '<div class="notif-unread-dot"></div>') +
+    '</div>';
+  }
+
+  async function loadAvisos(){
+    const listEl = document.getElementById('avisos-list');
+    listEl.innerHTML = '<div class="notif-empty" style="text-align:center; color:var(--ink-faint); font-size:13px; padding:10px 0;">Carregando...</div>';
+    try {
+      const notifications = await api('/notifications?requesterId=' + state.userId);
+      if (!notifications.length) {
+        listEl.innerHTML = '<div class="notif-empty" style="text-align:center; color:var(--ink-faint); font-size:13px; padding:10px 0;">Nenhum aviso por enquanto.</div>';
+      } else {
+        listEl.innerHTML = notifications.map(notifRowHtml).join('');
+      }
+    } catch (e) {
+      listEl.innerHTML = '<div class="empty-note">Erro ao carregar: ' + esc(e.message) + '</div>';
+    }
+    refreshUnreadBadge();
+  }
+
+  async function handleMarkRead(id){
+    try {
+      await api('/notifications/' + id + '/read?requesterId=' + state.userId, { method: 'POST' });
+      loadAvisos();
+    } catch (e) {
+      // silencioso: não é crítico se a marcação falhar
+    }
+  }
+
+  async function handleMarkAllRead(){
+    try {
+      await api('/notifications/read-all?requesterId=' + state.userId, { method: 'POST' });
+      loadAvisos();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  async function refreshUnreadBadge(){
+    const dot = document.querySelector('.badge-dot');
+    if (!dot || !state.userId) return;
+    try {
+      const res = await api('/notifications/unread-count?requesterId=' + state.userId);
+      dot.style.display = (res.unreadCount > 0) ? '' : 'none';
+    } catch (e) {
+      // silencioso
     }
   }
 
@@ -1739,6 +1793,7 @@
     if (screen === 'estatisticas') loadEstatisticas();
     if (screen === 'metas') loadMetas();
     if (screen === 'grupo') loadGrupo();
+    if (screen === 'avisos') loadAvisos();
   }
 </script>
 </body>
