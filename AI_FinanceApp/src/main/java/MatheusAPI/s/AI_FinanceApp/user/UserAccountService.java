@@ -1,10 +1,10 @@
 package MatheusAPI.s.AI_FinanceApp.user;
-
 import MatheusAPI.s.AI_FinanceApp.common.AccessDeniedException;
 import MatheusAPI.s.AI_FinanceApp.group.Group;
 import MatheusAPI.s.AI_FinanceApp.group.GroupRepository;
 import MatheusAPI.s.AI_FinanceApp.group.GroupService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
