@@ -459,6 +459,7 @@
     border:none; border-radius:11px; padding:12px; margin-top:4px;
     background:var(--card-grad); color:#fff; font-weight:700; font-size:14px; cursor:pointer;
   }
+  .login-btn:disabled{ opacity:0.6; cursor:not-allowed; }
   .login-error{font-size:12px; color:var(--coral-dark); margin-top:8px; text-align:center; min-height:14px;}
   .login-api{margin-top:16px; font-size:11px; color:var(--ink-faint); text-align:center;}
   .login-api input{
@@ -483,14 +484,14 @@
       <div class="login-tab" data-tab="entrar" onclick="switchLoginTab('entrar')">Entrar</div>
     </div>
 
-    <form class="login-form active" id="login-form-criar" onsubmit="event.preventDefault(); handleCreateUser();">
+    <form class="login-form active" id="login-form-criar" onsubmit="event.preventDefault(); handleCreateUser(event.submitter);">
       <input type="text" id="login-username" placeholder="Nome" required>
       <input type="text" id="login-surname" placeholder="Sobrenome" required>
       <input type="password" id="login-password" placeholder="Senha" required minlength="4">
       <button type="submit" class="login-btn">Criar conta e entrar</button>
     </form>
 
-    <form class="login-form" id="login-form-entrar" onsubmit="event.preventDefault(); handleLogin();">
+    <form class="login-form" id="login-form-entrar" onsubmit="event.preventDefault(); handleLogin(event.submitter);">
       <input type="text" id="entrar-username" placeholder="Usuário (nome)" required>
       <input type="password" id="entrar-password" placeholder="Senha" required>
       <button type="submit" class="login-btn">Entrar</button>
@@ -862,7 +863,13 @@
     onUserLoaded(user);
   }
 
-  async function handleCreateUser(){
+  async function handleCreateUser(btn){
+    // trava o botão enquanto a requisição não volta, pra clique duplo não disparar
+    // cadastro (e login) duas vezes -- reabilita sempre no final, mesmo se der erro.
+    if (btn && btn.disabled) return;
+    const originalLabel = btn ? btn.textContent : null;
+    if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
+
     const username = document.getElementById('login-username').value.trim();
     const surname = document.getElementById('login-surname').value.trim();
     const password = document.getElementById('login-password').value;
@@ -874,16 +881,24 @@
       await doLogin(username, password);
     } catch (e) {
       showLoginError(e);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
     }
   }
 
-  async function handleLogin(){
+  async function handleLogin(btn){
+    if (btn && btn.disabled) return;
+    const originalLabel = btn ? btn.textContent : null;
+    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+
     const username = document.getElementById('entrar-username').value.trim();
     const password = document.getElementById('entrar-password').value;
     try {
       await doLogin(username, password);
     } catch (e) {
       showLoginError(e);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
     }
   }
 
