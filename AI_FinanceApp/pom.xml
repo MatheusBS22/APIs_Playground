@@ -37,6 +37,13 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<!-- Ensina o Jackson a lidar com proxies lazy do Hibernate (ex: UserAccount.group),
+		     evitando o erro "No serializer found for class ...ByteBuddyInterceptor" quando
+		     uma entidade com relacionamento LAZY não carregado é serializada como resposta. -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-hibernate6</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
