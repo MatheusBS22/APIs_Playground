@@ -14,4 +14,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     // Categorias pessoais de um usuário específico dentro do grupo.
     List<Category> findByGroupIdAndOwnerId(Long groupId, Long ownerId);
+
+    // Usado pra achar/criar categorias de sistema (ex: "Aportes em metas") -- uma por grupo, sem dono.
+    java.util.Optional<Category> findByGroupIdAndNameAndOwnerIsNull(Long groupId, String name);
 }

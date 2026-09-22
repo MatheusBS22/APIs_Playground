@@ -94,6 +94,24 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
+    // Categoria de sistema (ex: "Aportes em metas"): não passa pelas checagens de permissão de create(),
+    // porque não é o usuário que está pedindo pra criar -- é o próprio backend garantindo que ela existe
+    // antes de lançar algo nela. Uma por grupo, sem dono (owner null), criada na primeira vez que é usada.
+    @Transactional
+    public Category getOrCreateSystemCategory(String name, FlowType type, Long groupId) {
+        return categoryRepository.findByGroupIdAndNameAndOwnerIsNull(groupId, name)
+                .orElseGet(() -> {
+                    Group group = groupRepository.findById(groupId)
+                            .orElseThrow(() -> new IllegalArgumentException("Grupo não encontrado: " + groupId));
+                    Category category = new Category();
+                    category.setName(name);
+                    category.setType(type);
+                    category.setGroup(group);
+                    category.setOwner(null);
+                    return categoryRepository.save(category);
+                });
+    }
+
     // ---------- helpers ----------
 
     private UserAccount getRequester(Long requesterId) {

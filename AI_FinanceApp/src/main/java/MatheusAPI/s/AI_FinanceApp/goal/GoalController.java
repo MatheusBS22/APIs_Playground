@@ -39,8 +39,8 @@ public class GoalController {
     }
 
     @PostMapping("/{id}/contributions")
-    public ResponseEntity<Goal> addContribution(@PathVariable Long id, @RequestBody ContributionRequest request) {
-        return ResponseEntity.ok(goalService.addContribution(id, request.amount(), request.requesterId()));
+    public ResponseEntity<ContributionResult> addContribution(@PathVariable Long id, @RequestBody ContributionRequest request) {
+        return ResponseEntity.ok(goalService.addContribution(id, request.amount(), request.accountId(), request.requesterId()));
     }
 
     @GetMapping("/{id}/required-monthly")
@@ -61,4 +61,4 @@ public class GoalController {
 }
 
 record CreateGoalRequest(String name, BigDecimal targetAmount, LocalDate deadline, Long groupId, Long ownerId, Long requesterId) {}
-record ContributionRequest(BigDecimal amount, Long requesterId) {}
+record ContributionRequest(BigDecimal amount, Long accountId, Long requesterId) {}

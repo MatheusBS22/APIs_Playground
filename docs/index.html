@@ -634,10 +634,12 @@
     </div>
 
     <div class="card" id="contribute-card" style="display:none;">
-      <div class="form-inline" style="margin-bottom:8px;">
-        <input type="number" id="contribute-amount" placeholder="Valor do aporte (R$)" step="0.01">
-        <button class="btn-ghost-block" onclick="handleContribute()">Aportar</button>
+      <div class="form-inline" style="flex-wrap:wrap; margin-bottom:8px;">
+        <select id="contribute-account" style="flex:1 1 100%;"></select>
+        <input type="number" id="contribute-amount" placeholder="Valor do aporte (R$)" step="0.01" style="flex:1 1 100%;">
+        <button class="btn-ghost-block" onclick="handleContribute()" style="flex:1 1 100%;">Aportar</button>
       </div>
+      <div style="font-size:11px; color:var(--ink-faint); margin-bottom:4px;">O valor sai da carteira escolhida como uma despesa.</div>
       <div class="login-error" id="contribute-error"></div>
     </div>
 </section>
@@ -1672,26 +1674,47 @@
     }
   }
 
-  function openContributeForm(goalId){
+  async function openContributeForm(goalId){
     activeContributeGoalId = goalId;
     document.getElementById('goal-form-card').style.display = 'none';
     document.getElementById('contribute-card').style.display = 'block';
     document.getElementById('contribute-amount').value = '';
     document.getElementById('contribute-error').textContent = '';
+
+    const accountSelect = document.getElementById('contribute-account');
+    accountSelect.innerHTML = '<option value="">Carregando carteiras...</option>';
+    try {
+      const accounts = await api('/accounts/group/' + state.groupId + '?requesterId=' + state.userId);
+      if (!accounts.length) {
+        accountSelect.innerHTML = '<option value="">Você não tem carteira -- crie uma antes de aportar</option>';
+      } else {
+        accountSelect.innerHTML = accounts.map(a => '<option value="' + a.id + '">' + esc(a.name) + '</option>').join('');
+      }
+    } catch (e) {
+      accountSelect.innerHTML = '<option value="">Erro ao carregar carteiras</option>';
+    }
+
     document.getElementById('contribute-card').scrollIntoView({ behavior:'smooth', block:'center' });
   }
 
   async function handleContribute(){
     const amount = document.getElementById('contribute-amount').value;
+    const accountId = document.getElementById('contribute-account').value;
     const errEl = document.getElementById('contribute-error');
     if (!amount || Number(amount) <= 0) { errEl.textContent = 'Informe um valor válido.'; return; }
+    if (!accountId) { errEl.textContent = 'Escolha de qual carteira vai sair o aporte.'; return; }
+    // no máximo 2 casas decimais, igual dinheiro de verdade -- o resto é arredondado antes de mandar.
+    const roundedAmount = Math.round(Number(amount) * 100) / 100;
     try {
-      await api('/goals/' + activeContributeGoalId + '/contributions', {
+      const result = await api('/goals/' + activeContributeGoalId + '/contributions', {
         method: 'POST',
-        body: JSON.stringify({ amount: Number(amount), requesterId: Number(state.userId) })
+        body: JSON.stringify({ amount: roundedAmount, accountId: Number(accountId), requesterId: Number(state.userId) })
       });
       document.getElementById('contribute-card').style.display = 'none';
       loadMetas();
+      if (result.lowBalanceWarning) {
+        alert('Aporte feito, mas a carteira ficou negativa: ' + fmtMoney(result.accountBalanceAfter));
+      }
     } catch (e) {
       errEl.textContent = e.message;
     }

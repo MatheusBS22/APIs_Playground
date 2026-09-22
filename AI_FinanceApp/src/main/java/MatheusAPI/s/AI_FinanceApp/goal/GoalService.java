@@ -1,5 +1,10 @@
 package MatheusAPI.s.AI_FinanceApp.goal;
 
+import MatheusAPI.s.AI_FinanceApp.balanceflow.BalanceFlow;
+import MatheusAPI.s.AI_FinanceApp.balanceflow.BalanceFlowService;
+import MatheusAPI.s.AI_FinanceApp.balanceflow.FlowType;
+import MatheusAPI.s.AI_FinanceApp.category.Category;
+import MatheusAPI.s.AI_FinanceApp.category.CategoryService;
 import MatheusAPI.s.AI_FinanceApp.common.AccessDeniedException;
 import MatheusAPI.s.AI_FinanceApp.group.Group;
 import MatheusAPI.s.AI_FinanceApp.group.GroupRepository;
@@ -27,10 +32,19 @@ public class GoalService {
     private final GroupRepository groupRepository;
     private final UserAccountRepository userAccountRepository;
     private final NotificationService notificationService;
+    private final BalanceFlowService balanceFlowService;
+    private final CategoryService categoryService;
 
     // Marcos que disparam aviso quando a meta cruza esse percentual (do maior pro menor,
     // pra avisar só o marco mais alto que foi cruzado num único aporte).
     private static final int[] MILESTONES = {100, 75, 50};
+
+    // Toda quantia em dinheiro no app usa no máximo 2 casas decimais -- o que vier com mais
+    // é arredondado (compactado) pra esse limite, tanto no aporte quanto no valor guardado na meta.
+    private static final int MONEY_SCALE = 2;
+
+    // Nome fixo da categoria de sistema onde caem os aportes em metas -- uma por grupo, criada sozinha.
+    private static final String CONTRIBUTION_CATEGORY_NAME = "Aportes em metas";
 
     @Transactional
     public Goal create(String name, BigDecimal targetAmount, LocalDate deadline, Long groupId, Long ownerId, Long requesterId) {
@@ -91,11 +105,18 @@ public class GoalService {
 
     // Aporte: em meta de grupo, qualquer membro do mesmo grupo pode contribuir.
     // Em meta individual, só o dono contribui. Dispara avisos de aporte e de marco cruzado (50/75/100%).
+    // O valor sai de verdade de uma carteira do próprio requester (lançado como despesa), então quem
+    // aporta precisa ter uma carteira -- o dinheiro não aparece do nada.
     @Transactional
-    public Goal addContribution(Long id, BigDecimal amount, Long requesterId) {
+    public ContributionResult addContribution(Long id, BigDecimal amount, Long accountId, Long requesterId) {
         if (amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("O valor do aporte deve ser positivo");
         }
+        if (accountId == null) {
+            throw new IllegalArgumentException("Informe de qual carteira o aporte vai sair");
+        }
+        amount = amount.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+
         Goal goal = getById(id);
         UserAccount requester = getRequester(requesterId);
 
@@ -109,14 +130,32 @@ public class GoalService {
             throw new AccessDeniedException("Essa meta é individual -- só o dono pode aportar");
         }
 
+        // Lança o aporte como despesa na carteira do requester. BalanceFlowService já garante que a
+        // carteira é dele (ou DEVELOPER) e que ela pertence ao mesmo grupo da meta/categoria.
+        Category category = categoryService.getOrCreateSystemCategory(
+                CONTRIBUTION_CATEGORY_NAME, FlowType.EXPENSE, goal.getGroup().getId());
+        // título da despesa tem limite de 32 caracteres na coluna -- corta se o nome da meta for longo.
+        String title = "Aporte: " + goal.getName();
+        if (title.length() > 32) {
+            title = title.substring(0, 32);
+        }
+        BalanceFlow flow = balanceFlowService.create(
+                FlowType.EXPENSE, amount, title, null,
+                accountId, category.getId(), requesterId);
+
         BigDecimal before = goal.getCurrentAmount();
-        BigDecimal after = before.add(amount);
+        BigDecimal after = before.add(amount).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         goal.setCurrentAmount(after);
         Goal saved = goalRepository.save(goal);
 
         notifyContribution(saved, requester, amount, before, after);
 
-        return saved;
+        // Não bloqueia se a carteira ficar negativa -- só avisa. É "número calculado" (saldo = soma
+        // dos lançamentos), então negativo não quebra nada, mas o usuário precisa saber.
+        BigDecimal accountBalanceAfter = balanceFlowService.getBalanceByAccount(flow.getAccount().getId(), requesterId);
+        boolean lowBalanceWarning = accountBalanceAfter.signum() < 0;
+
+        return new ContributionResult(saved, lowBalanceWarning, accountBalanceAfter);
     }
 
     @Transactional
@@ -224,3 +263,7 @@ public class GoalService {
         }
     }
 }
+
+// accountBalanceAfter: saldo da carteira depois do aporte. lowBalanceWarning: true se ficou negativo
+// -- o front usa isso pra avisar o usuário, sem bloquear o aporte.
+record ContributionResult(Goal goal, boolean lowBalanceWarning, BigDecimal accountBalanceAfter) {}
