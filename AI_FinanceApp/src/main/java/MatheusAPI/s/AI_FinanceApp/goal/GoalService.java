@@ -3,6 +3,8 @@ package MatheusAPI.s.AI_FinanceApp.goal;
 import MatheusAPI.s.AI_FinanceApp.common.AccessDeniedException;
 import MatheusAPI.s.AI_FinanceApp.group.Group;
 import MatheusAPI.s.AI_FinanceApp.group.GroupRepository;
+import MatheusAPI.s.AI_FinanceApp.notification.NotificationService;
+import MatheusAPI.s.AI_FinanceApp.notification.NotificationType;
 import MatheusAPI.s.AI_FinanceApp.user.AccPermissions;
 import MatheusAPI.s.AI_FinanceApp.user.AccType;
 import MatheusAPI.s.AI_FinanceApp.user.UserAccount;
@@ -24,6 +26,11 @@ public class GoalService {
     private final GoalRepository goalRepository;
     private final GroupRepository groupRepository;
     private final UserAccountRepository userAccountRepository;
+    private final NotificationService notificationService;
+
+    // Marcos que disparam aviso quando a meta cruza esse percentual (do maior pro menor,
+    // pra avisar só o marco mais alto que foi cruzado num único aporte).
+    private static final int[] MILESTONES = {100, 75, 50};
 
     @Transactional
     public Goal create(String name, BigDecimal targetAmount, LocalDate deadline, Long groupId, Long ownerId, Long requesterId) {
@@ -83,7 +90,7 @@ public class GoalService {
     }
 
     // Aporte: em meta de grupo, qualquer membro do mesmo grupo pode contribuir.
-    // Em meta individual, só o dono contribui.
+    // Em meta individual, só o dono contribui. Dispara avisos de aporte e de marco cruzado (50/75/100%).
     @Transactional
     public Goal addContribution(Long id, BigDecimal amount, Long requesterId) {
         if (amount == null || amount.signum() <= 0) {
@@ -102,8 +109,14 @@ public class GoalService {
             throw new AccessDeniedException("Essa meta é individual -- só o dono pode aportar");
         }
 
-        goal.setCurrentAmount(goal.getCurrentAmount().add(amount));
-        return goalRepository.save(goal);
+        BigDecimal before = goal.getCurrentAmount();
+        BigDecimal after = before.add(amount);
+        goal.setCurrentAmount(after);
+        Goal saved = goalRepository.save(goal);
+
+        notifyContribution(saved, requester, amount, before, after);
+
+        return saved;
     }
 
     @Transactional
@@ -156,6 +169,46 @@ public class GoalService {
         return new GoalProjection(monthsNeeded, projectedDate, onTime, monthlyDifference);
     }
 
+    // ---------- avisos ----------
+
+    private void notifyContribution(Goal goal, UserAccount contributor, BigDecimal amount, BigDecimal before, BigDecimal after) {
+        String amountFmt = NotificationService.formatCurrency(amount);
+        String contributionMessage = contributor.getUsername() + " aportou " + amountFmt + " na meta " + goal.getName();
+
+        List<UserAccount> notifyTargets;
+        if (goal.getOwner() == null) {
+            // meta de grupo: avisa todo mundo do grupo, menos quem acabou de aportar
+            notifyTargets = userAccountRepository.findByGroupId(goal.getGroup().getId());
+            notificationService.notifyOthers(notifyTargets, contributor.getId(), NotificationType.GOAL_CONTRIBUTION, contributionMessage);
+        } else {
+            // meta individual: só o dono aporta, então não faz sentido avisar "fulano aportou" pra ele mesmo
+            notifyTargets = List.of(goal.getOwner());
+        }
+
+        int milestone = crossedMilestone(goal.getTargetAmount(), before, after);
+        if (milestone > 0) {
+            String milestoneMessage = "A meta " + goal.getName() + " passou de " + milestone + "%!";
+            for (UserAccount target : notifyTargets) {
+                notificationService.notify(target, NotificationType.GOAL_MILESTONE, milestoneMessage);
+            }
+            if (goal.getOwner() == null) {
+                notificationService.notify(contributor, NotificationType.GOAL_MILESTONE, milestoneMessage);
+            }
+        }
+    }
+
+    // Maior marco (100/75/50) que o aporte fez a meta cruzar, ou -1 se nenhum foi cruzado agora.
+    private int crossedMilestone(BigDecimal target, BigDecimal before, BigDecimal after) {
+        for (int milestone : MILESTONES) {
+            BigDecimal threshold = target.multiply(BigDecimal.valueOf(milestone))
+                    .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+            if (after.compareTo(threshold) >= 0 && before.compareTo(threshold) < 0) {
+                return milestone;
+            }
+        }
+        return -1;
+    }
+
     // ---------- helpers ----------
 
     private UserAccount getRequester(Long requesterId) {
@@ -171,4 +224,3 @@ public class GoalService {
         }
     }
 }
-
