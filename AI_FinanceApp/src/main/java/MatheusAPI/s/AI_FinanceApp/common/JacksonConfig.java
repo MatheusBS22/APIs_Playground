@@ -9,14 +9,17 @@ public class JacksonConfig {
 
     // Sem esse módulo, o Jackson tenta serializar o proxy do Hibernate (ByteBuddyInterceptor)
     // de qualquer relacionamento @ManyToOne/@OneToMany LAZY que ainda não foi carregado, e quebra
-    // com "No serializer found for class ...ByteBuddyInterceptor". Com o módulo registrado, ele
-    // some do JSON quando não carregado (comportamento padrão), em vez de derrubar a resposta.
+    // com "No serializer found for class ...ByteBuddyInterceptor".
+    //
+    // FORCE_LAZY_LOADING: em vez de simplesmente omitir o campo lazy não carregado do JSON,
+    // força o Hibernate a buscar o dado de verdade na hora de serializar. Isso só funciona
+    // porque spring.jpa.open-in-view está ligado (padrão do Spring Boot) -- a sessão do
+    // Hibernate continua aberta até a resposta ser montada. Necessário aqui porque o
+    // front depende de campos como user.group.id vindo preenchido de verdade.
     @Bean
     public Hibernate6Module hibernate6Module() {
         Hibernate6Module module = new Hibernate6Module();
-        // Se preferir que o campo lazy não carregado apareça como null em vez de simplesmente
-        // sumir do JSON, descomente a linha abaixo:
-        // module.configure(Hibernate6Module.Feature.SERIALIZE_IDENTIFIER_FOR_LAZY_NOT_LOADED_OBJECTS, true);
+        module.configure(Hibernate6Module.Feature.FORCE_LAZY_LOADING, true);
         return module;
     }
 }
